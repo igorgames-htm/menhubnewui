@@ -3509,13 +3509,13 @@ function Library:CreateWindow(...)
                         local Cursor = Instance.new("ImageLabel", ScreenGui)
                         Cursor.Image = "http://www.roblox.com/asset/?id=4292970642"
                         Cursor.BackgroundTransparency = 1
-                        Cursor.ZIndex = 100
+                        Cursor.ZIndex = 100000
 
                         local CursorOutline = Instance.new("ImageLabel", ScreenGui)
                         CursorOutline.Image = "http://www.roblox.com/asset/?id=4292970642"
                         CursorOutline.ImageColor3 = Color3.new()
                         CursorOutline.BackgroundTransparency = 1
-                        CursorOutline.ZIndex = 99
+                        CursorOutline.ZIndex = 99999
 
                         Cursor.Size, CursorOutline.Size = UDim2.fromOffset(17, 17), UDim2.fromOffset(19, 19)
                         Cursor.Rotation, CursorOutline.Rotation = -45, -45
