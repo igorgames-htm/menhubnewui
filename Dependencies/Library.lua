@@ -2066,11 +2066,11 @@ do
         local SInner = Library:Create('Frame', { BackgroundColor3=Library.MainColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,1,0); ZIndex=6; Parent=SOuter })
         Library:AddToRegistry(SInner, { BackgroundColor3='MainColor'; BorderColor3='OutlineColor' })
         SInner:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
-            local w = SInner.AbsoluteSize.X - 2
+            local w = SInner.AbsoluteSize.X
             if w > 0 then Slider.MaxSize = w; Slider:Display() end
         end)
-        local Fill = Library:Create('Frame', { BackgroundColor3=Library.AccentColor; BorderSizePixel=0; Position=UDim2.fromOffset(1,1); Size=UDim2.fromOffset(0,slH-2); ZIndex=7; Parent=SInner })
-        Library:AddToRegistry(Fill, { BackgroundColor3='AccentColor' })
+        local Fill = Library:Create('Frame', { BackgroundColor3=Library.AccentColor; BorderColor3=Library.AccentColorDark; Size=UDim2.fromOffset(0,slH); ZIndex=7; Parent=SInner })
+        Library:AddToRegistry(Fill, { BackgroundColor3='AccentColor'; BorderColor3='AccentColorDark' })
         local HideBR = Library:Create('Frame', { BackgroundColor3=Library.AccentColor; BorderSizePixel=0; Position=UDim2.new(1,0,0,0); Size=UDim2.new(0,1,1,0); ZIndex=8; Parent=Fill })
         Library:AddToRegistry(HideBR, { BackgroundColor3='AccentColor' })
         local DropdownLabel = Library:CreateLabel({ Size=UDim2.new(1,0,1,0); TextSize=S(13); Text=''; ZIndex=9; Parent=SInner })
@@ -2088,11 +2088,12 @@ do
             local suf = Info.Suffix or ''
             DropdownLabel.Text = Library:TranslateString(Info.Text)..': '..Slider.Value..suf
             local x = math.ceil(Library:MapValue(Slider.Value, Slider.Min, Slider.Max, 0, Slider.MaxSize))
-            Fill.Size = UDim2.fromOffset(x, slH - 2)
+            Fill.Size = UDim2.fromOffset(x, slH)
             HideBR.Visible = x ~= Slider.MaxSize and x ~= 0
         end
         function Slider:UpdateColors()
-            Fill.BackgroundColor3 = Library.AccentColor
+            Fill.BackgroundColor3  = Library.AccentColor
+            Fill.BorderColor3      = Library.AccentColorDark
         end
         function Slider:OnChanged(fn) Slider.Changed = fn; fn(Slider.Value) end
         function Slider:SetValue(n)
@@ -2104,7 +2105,7 @@ do
 
         HandleDrag(SInner, function(x,y)
             local ap = Fill.AbsolutePosition
-            local w = SInner.AbsoluteSize.X - 2
+            local w = SInner.AbsoluteSize.X
             if w > 0 then Slider.MaxSize = w end
             local nx = math.clamp(x - ap.X, 0, Slider.MaxSize)
             local nv = Slider:GetValueFromX(nx)
@@ -3505,41 +3506,38 @@ function Library:CreateWindow(...)
                     Library.savedMouseIcon = Services.UserInputService.MouseIconEnabled
 
                     task.spawn(function()
-                        local Cursor = Library.Drawing:CreateTriangle({
-                            Thickness = 1;
-                            Filled    = true;
-                            Visible   = true;
-                        })
+                        local GuiService = Services.GuiService
 
-                        local CursorOutline = Library.Drawing:CreateTriangle({
-                            Thickness = 1;
-                            Filled    = false;
-                            Color     = Color3.new(0, 0, 0);
-                            Visible   = true;
-                        })
+                        local Cursor = Instance.new("ImageLabel", ScreenGui)
+                        Cursor.Image = "http://www.roblox.com/asset/?id=4292970642"
+                        Cursor.BackgroundTransparency = 1
+                        Cursor.ZIndex = 100
+
+                        local CursorOutline = Instance.new("ImageLabel", ScreenGui)
+                        CursorOutline.Image = "http://www.roblox.com/asset/?id=4292970642"
+                        CursorOutline.ImageColor3 = Color3.new()
+                        CursorOutline.BackgroundTransparency = 1
+                        CursorOutline.ZIndex = 99
+
+                        Cursor.Size, CursorOutline.Size = UDim2.fromOffset(17, 17), UDim2.fromOffset(19, 19)
+                        Cursor.Rotation, CursorOutline.Rotation = -45, -45
 
                         while Library.MenuShown and ScreenGui.Parent do
                             Services.UserInputService.MouseIconEnabled = false
 
                             local mPos = Services.UserInputService:GetMouseLocation()
+                            local udim = UDim2.fromOffset(mPos.X, mPos.Y - GuiService:GetGuiInset().Y - 1)
 
-                            Cursor.Color = Library.AccentColor
-
-                            Cursor.PointA = Vector2.new(mPos.X, mPos.Y)
-                            Cursor.PointB = Vector2.new(mPos.X + 16, mPos.Y + 6)
-                            Cursor.PointC = Vector2.new(mPos.X + 6, mPos.Y + 16)
-
-                            CursorOutline.PointA = Cursor.PointA
-                            CursorOutline.PointB = Cursor.PointB
-                            CursorOutline.PointC = Cursor.PointC
+                            Cursor.ImageColor3 = Library.AccentColor
+                            Cursor.Position, CursorOutline.Position = udim, udim - UDim2.fromOffset(1, 1)
 
                             Services.RunService.RenderStepped:Wait()
                         end
 
                         Services.UserInputService.MouseIconEnabled = Library.savedMouseIcon
 
-                        Library.Drawing:Remove(Cursor)
-                        Library.Drawing:Remove(CursorOutline)
+                        Cursor:Destroy()
+                        CursorOutline:Destroy()
                         Library.cursorLoopActive = false
                     end)
                 end
