@@ -2069,7 +2069,7 @@ do
             local w = SInner.AbsoluteSize.X
             if w > 0 then Slider.MaxSize = w; Slider:Display() end
         end)
-        local Fill = Library:Create('Frame', { BackgroundColor3=Library.AccentColor; BorderColor3=Library.AccentColorDark; Size=UDim2.fromOffset(0,slH); ZIndex=7; Parent=SInner })
+        local Fill = Library:Create('Frame', { BackgroundColor3=Library.AccentColor; BorderColor3=Library.AccentColorDark; Size=UDim2.new(0,0,1,0); ZIndex=7; Parent=SInner })
         Library:AddToRegistry(Fill, { BackgroundColor3='AccentColor'; BorderColor3='AccentColorDark' })
         local HideBR = Library:Create('Frame', { BackgroundColor3=Library.AccentColor; BorderSizePixel=0; Position=UDim2.new(1,0,0,0); Size=UDim2.new(0,1,1,0); ZIndex=8; Parent=Fill })
         Library:AddToRegistry(HideBR, { BackgroundColor3='AccentColor' })
@@ -2088,8 +2088,8 @@ do
             local suf = Info.Suffix or ''
             DropdownLabel.Text = Library:TranslateString(Info.Text)..': '..Slider.Value..suf
             local x = math.ceil(Library:MapValue(Slider.Value, Slider.Min, Slider.Max, 0, Slider.MaxSize))
-            Fill.Size = UDim2.fromOffset(x, slH)
-            HideBR.Visible = x ~= Slider.MaxSize and x ~= 0
+            Fill.Size = UDim2.new(0, x, 1, 0)
+            HideBR.Visible = not (x == Slider.MaxSize or x == 0)
         end
         function Slider:UpdateColors()
             Fill.BackgroundColor3  = Library.AccentColor
