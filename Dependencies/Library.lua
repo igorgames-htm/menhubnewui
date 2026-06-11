@@ -2066,10 +2066,10 @@ do
         local SInner = Library:Create('Frame', { BackgroundColor3=Library.MainColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,1,0); ZIndex=6; Parent=SOuter })
         Library:AddToRegistry(SInner, { BackgroundColor3='MainColor'; BorderColor3='OutlineColor' })
         SInner:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
-            local w = SInner.AbsoluteSize.X
+            local w = SInner.AbsoluteSize.X - 2
             if w > 0 then Slider.MaxSize = w; Slider:Display() end
         end)
-        local Fill = Library:Create('Frame', { BackgroundColor3=Library.AccentColor; BorderSizePixel=0; Position=UDim2.fromOffset(0,1); Size=UDim2.fromOffset(0,slH-2); ZIndex=7; Parent=SInner })
+        local Fill = Library:Create('Frame', { BackgroundColor3=Library.AccentColor; BorderSizePixel=0; Position=UDim2.fromOffset(1,1); Size=UDim2.fromOffset(0,slH-2); ZIndex=7; Parent=SInner })
         Library:AddToRegistry(Fill, { BackgroundColor3='AccentColor' })
         local HideBR = Library:Create('Frame', { BackgroundColor3=Library.AccentColor; BorderSizePixel=0; Position=UDim2.new(1,0,0,0); Size=UDim2.new(0,1,1,0); ZIndex=8; Parent=Fill })
         Library:AddToRegistry(HideBR, { BackgroundColor3='AccentColor' })
@@ -2104,7 +2104,7 @@ do
 
         HandleDrag(SInner, function(x,y)
             local ap = Fill.AbsolutePosition
-            local w = SInner.AbsoluteSize.X
+            local w = SInner.AbsoluteSize.X - 2
             if w > 0 then Slider.MaxSize = w end
             local nx = math.clamp(x - ap.X, 0, Slider.MaxSize)
             local nv = Slider:GetValueFromX(nx)
