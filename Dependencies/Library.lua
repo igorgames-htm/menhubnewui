@@ -3506,8 +3506,6 @@ function Library:CreateWindow(...)
                     Library.savedMouseIcon = Services.UserInputService.MouseIconEnabled
 
                     task.spawn(function()
-                        local GuiService = Services.GuiService
-
                         local Cursor = Instance.new("ImageLabel", ScreenGui)
                         Cursor.Image = "http://www.roblox.com/asset/?id=4292970642"
                         Cursor.BackgroundTransparency = 1
@@ -3526,7 +3524,7 @@ function Library:CreateWindow(...)
                             Services.UserInputService.MouseIconEnabled = false
 
                             local mPos = Services.UserInputService:GetMouseLocation()
-                            local udim = UDim2.fromOffset(mPos.X, mPos.Y - GuiService:GetGuiInset().Y - 1)
+                            local udim = UDim2.fromOffset(mPos.X, mPos.Y)
 
                             Cursor.ImageColor3 = Library.AccentColor
                             Cursor.Position, CursorOutline.Position = udim, udim - UDim2.fromOffset(1, 1)
