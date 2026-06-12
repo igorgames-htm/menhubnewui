@@ -2939,10 +2939,12 @@ function Library:CreateWindow(...)
         local tabDisplayName = tostring(Name or "")
 
         local tabFontSz = IsMobile and S(12) or S(13)
-        local tbW = Library:GetTextBounds(tabDisplayName, Library.Font, tabFontSz) + S(IsMobile and 16 or 12)
+        local tbW = Library:GetTextBounds(tabDisplayName, Library.Font, tabFontSz) + S(IsMobile and 22 or 18)
         local TBtn = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderColor3=Library.OutlineColor; Size=UDim2.new(0,tbW,1,0); ZIndex=1; Parent=TabArea })
         Library:AddToRegistry(TBtn, { BackgroundColor3='BackgroundColor'; BorderColor3='OutlineColor' })
-        local TBtnLabel = Library:CreateLabel({ Size=UDim2.new(1,0,1,-1); TextSize=tabFontSz; Text=tabDisplayName; PreserveCase=true; ZIndex=1; Parent=TBtn })
+        -- thin black outline drawn inside the tab box
+        Library:Create('Frame', { BackgroundTransparency=1; BorderColor3=Color3.new(0,0,0); BorderMode=Enum.BorderMode.Inset; BorderSizePixel=1; Size=UDim2.new(1,0,1,0); ZIndex=2; Parent=TBtn })
+        local TBtnLabel = Library:CreateLabel({ Size=UDim2.new(1,0,1,-1); TextSize=tabFontSz; Text=tabDisplayName; PreserveCase=true; ZIndex=3; Parent=TBtn })
         Library:RemoveFromRegistry(TBtnLabel)
         TBtnLabel.TextColor3 = Color3.fromRGB(110,110,110)
         Tab.Button = TBtn
@@ -2959,21 +2961,14 @@ function Library:CreateWindow(...)
                 TabArea.CanvasSize = UDim2.fromOffset(content, 0)
                 return
             end
-            local total = 0
-            for _ in next, Window.Tabs do total = total + 1 end
-            if total > 0 then
-                local curW     = Outer.Size.X.Offset
-                local ratio    = math.clamp(curW / WinW, 0.4, 1.0)
-                local basePad  = Config.TabPadding or 8
-                local padding  = math.max(2, math.floor(basePad * ratio))
-                local outerPad = TAB_OUTER
-                local tabAreaW = curW - 34
-                local availW   = tabAreaW - 2 * outerPad
-                local tabW     = math.max(10, math.floor((availW - (total - 1) * padding) / total))
-                TBtn.Size      = UDim2.new(0, tabW, 1, 0)
-                TBtnLabel.TextSize = math.max(9, math.floor(tabFontSz * ratio))
-                TabLayout.Padding  = UDim.new(0, padding)
-            end
+            -- Tabs keep their text-fit width and constant text size; the boxes
+            -- shrink with the window only via tighter padding, never the text.
+            local curW    = Outer.Size.X.Offset
+            local ratio   = math.clamp(curW / WinW, 0.4, 1.0)
+            local basePad = Config.TabPadding or 8
+            TBtn.Size          = UDim2.new(0, tbW, 1, 0)
+            TBtnLabel.TextSize = tabFontSz
+            TabLayout.Padding  = UDim.new(0, math.max(2, math.floor(basePad * ratio)))
         end)
         local TUnder = Library:Create('Frame', { BackgroundColor3=Library.AccentColor; BorderSizePixel=0; Position=UDim2.new(0,0,0,0); Size=UDim2.new(1,0,0,1); Visible=false; ZIndex=3; Parent=TBtn })
         Library:AddToRegistry(TUnder, { BackgroundColor3='AccentColor' })
@@ -3035,10 +3030,14 @@ function Library:CreateWindow(...)
             for _, t in next, Window.Tabs do t:HideTab() end
             TUnder.Visible = true; TFrame.Visible = true
             TBtnLabel.TextColor3 = Color3.new(1,1,1)
+            TBtn.BackgroundColor3 = Library.MainColor
+            if Library.RegistryMap[TBtn] then Library.RegistryMap[TBtn].Properties.BackgroundColor3 = 'MainColor' end
         end
         function Tab:HideTab()
             TUnder.Visible = false; TFrame.Visible = false
             TBtnLabel.TextColor3 = Color3.fromRGB(110,110,110)
+            TBtn.BackgroundColor3 = Library.BackgroundColor
+            if Library.RegistryMap[TBtn] then Library.RegistryMap[TBtn].Properties.BackgroundColor3 = 'BackgroundColor' end
         end
         function Tab:SetLayoutOrder(p) TBtn.LayoutOrder = p; TabLayout:ApplyLayout() end
 
