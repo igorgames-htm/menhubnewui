@@ -2938,7 +2938,7 @@ function Library:CreateWindow(...)
         local Tab = { Groupboxes={}; Tabboxes={} }
         local tabDisplayName = tostring(Name or "")
 
-        local tabFontSz = IsMobile and S(14) or S(16)
+        local tabFontSz = IsMobile and S(12) or S(13)
         local tbW = Library:GetTextBounds(tabDisplayName, Library.Font, tabFontSz) + S(IsMobile and 16 or 12)
         local TBtn = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderColor3=Library.OutlineColor; Size=UDim2.new(0,tbW,1,0); ZIndex=1; Parent=TabArea })
         Library:AddToRegistry(TBtn, { BackgroundColor3='BackgroundColor'; BorderColor3='OutlineColor' })
