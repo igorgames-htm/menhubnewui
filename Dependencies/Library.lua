@@ -970,7 +970,7 @@ function Library:SetWatermark(Text)
 end
 
 function Library:Notify(Text, Time)
-    if not ShouldShowNotify(Text) then return end
+    if not Text or Text == "" then return end
     local xw = Library:GetTextBounds(Text, Library.Font, S(14))
     local H   = S(22)
     local Outer = Library:Create('Frame', {
