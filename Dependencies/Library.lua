@@ -2942,12 +2942,13 @@ function Library:CreateWindow(...)
         local tbW = Library:GetTextBounds(tabDisplayName, Library.Font, tabFontSz) + S(IsMobile and 22 or 18)
         local TBtn = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderColor3=Library.OutlineColor; Size=UDim2.new(0,tbW,1,0); ZIndex=1; Parent=TabArea })
         Library:AddToRegistry(TBtn, { BackgroundColor3='BackgroundColor'; BorderColor3='OutlineColor' })
-        -- thin black outline drawn inside the tab box
-        Library:Create('Frame', { BackgroundTransparency=1; BorderColor3=Color3.new(0,0,0); BorderMode=Enum.BorderMode.Inset; BorderSizePixel=1; Size=UDim2.new(1,0,1,0); ZIndex=2; Parent=TBtn })
+        -- black outline drawn inside the tab box
+        Library:Create('Frame', { BackgroundTransparency=1; BorderColor3=Color3.new(0,0,0); BorderMode=Enum.BorderMode.Inset; BorderSizePixel=2; Size=UDim2.new(1,0,1,0); ZIndex=2; Parent=TBtn })
         local TBtnLabel = Library:CreateLabel({ Size=UDim2.new(1,0,1,-1); TextSize=tabFontSz; Text=tabDisplayName; PreserveCase=true; ZIndex=3; Parent=TBtn })
         Library:RemoveFromRegistry(TBtnLabel)
         TBtnLabel.TextColor3 = Color3.fromRGB(110,110,110)
         Tab.Button = TBtn
+        Tab.NaturalW = tbW
         table.insert(Library.TabResizeCallbacks, function()
             if not TBtn.Parent then return end
             if IsMobile then
@@ -2961,14 +2962,25 @@ function Library:CreateWindow(...)
                 TabArea.CanvasSize = UDim2.fromOffset(content, 0)
                 return
             end
-            -- Tabs keep their text-fit width and constant text size; the boxes
-            -- shrink with the window only via tighter padding, never the text.
-            local curW    = Outer.Size.X.Offset
-            local ratio   = math.clamp(curW / WinW, 0.4, 1.0)
-            local basePad = Config.TabPadding or 8
-            TBtn.Size          = UDim2.new(0, tbW, 1, 0)
-            TBtnLabel.TextSize = tabFontSz
-            TabLayout.Padding  = UDim.new(0, math.max(2, math.floor(basePad * ratio)))
+            -- Tabs fill the whole row, each taking a share of the width
+            -- proportional to its own text width. Text size never shrinks.
+            local total, sumW = 0, 0
+            for _, t in next, Window.Tabs do
+                total = total + 1
+                sumW  = sumW + (t.NaturalW or 0)
+            end
+            if total > 0 and sumW > 0 then
+                local curW     = Outer.Size.X.Offset
+                local ratio    = math.clamp(curW / WinW, 0.4, 1.0)
+                local padding  = math.max(2, math.floor((Config.TabPadding or 8) * ratio))
+                local tabAreaW = TabArea.AbsoluteSize.X
+                if tabAreaW <= 0 then tabAreaW = curW - 34 end
+                local availW   = tabAreaW - (total - 1) * padding
+                local myW      = math.max(10, math.floor(availW * (tbW / sumW)))
+                TBtn.Size          = UDim2.new(0, myW, 1, 0)
+                TBtnLabel.TextSize = tabFontSz
+                TabLayout.Padding  = UDim.new(0, padding)
+            end
         end)
         local TUnder = Library:Create('Frame', { BackgroundColor3=Library.AccentColor; BorderSizePixel=0; Position=UDim2.new(0,0,0,0); Size=UDim2.new(1,0,0,1); Visible=false; ZIndex=3; Parent=TBtn })
         Library:AddToRegistry(TUnder, { BackgroundColor3='AccentColor' })
