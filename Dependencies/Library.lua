@@ -1755,7 +1755,7 @@ do
                 local Outer = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Size=UDim2.new(0,w,1,0); ZIndex=5; Parent=Row })
                 local Inner = Library:Create('Frame', { BackgroundColor3=Library.MainColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,1,0); ZIndex=6; Parent=Outer })
                 Library:AddToRegistry(Inner, { BackgroundColor3='MainColor'; BorderColor3='OutlineColor' })
-                Library:OnHighlight(Outer, Outer, { BorderColor3='AccentColor' }, { BorderColor3='Black' })
+                Library:OnHighlight(Outer, Outer, { BorderSizePixel=2 }, { BorderSizePixel=1 })
                 Library:Create('UIGradient', { Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.new(1,1,1)),ColorSequenceKeypoint.new(1,Color3.fromRGB(212,212,212))}); Rotation=90; Parent=Inner })
                 local Clip = Library:Create('Frame', { BackgroundTransparency=1; ClipsDescendants=true; Position=UDim2.new(0,S(3),0,0); Size=UDim2.new(1,-S(3),1,0); ZIndex=7; Parent=Inner })
                 local Box = Library:Create('TextBox', {
@@ -1776,7 +1776,7 @@ do
             Library:AddToRegistry(ButtonInner, { BackgroundColor3='MainColor'; BorderColor3='OutlineColor' })
             Library:Create('UIGradient', { Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.new(1,1,1)),ColorSequenceKeypoint.new(1,Color3.fromRGB(212,212,212))}); Rotation=90; Parent=ButtonInner })
             Library:CreateLabel({ Size=UDim2.new(1,0,1,0); Text="-"; TextSize=S(14); ZIndex=7; Parent=ButtonInner })
-            Library:OnHighlight(ButtonOuter, ButtonOuter, { BorderColor3='AccentColor' }, { BorderColor3='Black' })
+            Library:OnHighlight(ButtonOuter, ButtonOuter, { BorderSizePixel=2 }, { BorderSizePixel=1 })
 
             TxtBox:GetPropertyChangedSignal('Text'):Connect(function()
                 entry.textVal = TxtBox.Text; fireChanged()
@@ -1824,7 +1824,7 @@ do
         Library:AddToRegistry(AddButtonInner, { BackgroundColor3='MainColor'; BorderColor3='OutlineColor' })
         Library:Create('UIGradient', { Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.new(1,1,1)),ColorSequenceKeypoint.new(1,Color3.fromRGB(212,212,212))}); Rotation=90; Parent=AddButtonInner })
         Library:CreateLabel({ Size=UDim2.new(1,0,1,0); Text="+ add fact"; TextSize=S(13); ZIndex=7; Parent=AddButtonInner })
-        Library:OnHighlight(AddButtonRow, AddButtonRow, { BorderColor3='AccentColor' }, { BorderColor3='Black' })
+        Library:OnHighlight(AddButtonRow, AddButtonRow, { BorderSizePixel=2 }, { BorderSizePixel=1 })
         AddButtonRow.InputBegan:Connect(function(inp)
             if not Library:IsPointerInput(inp) or Library:MouseIsOverOpenedFrame() then return end
             makeRow("", 50)
@@ -1867,7 +1867,7 @@ do
             Library:Create('UIGradient', { Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.new(1,1,1)),ColorSequenceKeypoint.new(1,Color3.fromRGB(212,212,212))}); Rotation=90; Parent=i })
             Library:AddToRegistry(o, { BorderColor3='Black' })
             Library:AddToRegistry(i, { BackgroundColor3='MainColor'; BorderColor3='OutlineColor' })
-            Library:OnHighlight(o, o, { BorderColor3='AccentColor' }, { BorderColor3='Black' })
+            Library:OnHighlight(o, o, { BorderSizePixel=2 }, { BorderSizePixel=1 })
             return o, i, l
         end
 
@@ -1927,7 +1927,7 @@ do
         local Outer = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Size=UDim2.new(1,-S(4),0,BoxHeight); ZIndex=5; Parent=Groupbox.Container })
         local Inner = Library:Create('Frame', { BackgroundColor3=Library.MainColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,1,0); ZIndex=6; Parent=Outer })
         Library:AddToRegistry(Inner, { BackgroundColor3='MainColor'; BorderColor3='OutlineColor' })
-        Library:OnHighlight(Outer, Outer, { BorderColor3='AccentColor' }, { BorderColor3='Black' })
+        Library:OnHighlight(Outer, Outer, { BorderSizePixel=2 }, { BorderSizePixel=1 })
         Library:Create('UIGradient', { Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.new(1,1,1)),ColorSequenceKeypoint.new(1,Color3.fromRGB(212,212,212))}); Rotation=90; Parent=Inner })
         if type(Info.Tooltip)=='string' then Library:AddToolTip(Info.Tooltip, Outer) end
         local Clip = Library:Create('Frame', { BackgroundTransparency=1; ClipsDescendants=true; Position=UDim2.new(0,S(5),0,0); Size=UDim2.new(1,-S(5),1,0); ZIndex=7; Parent=Inner })
@@ -1999,7 +1999,7 @@ do
         task.defer(syncTLW)
         local HitW = IsMobile and S(220) or S(155)
         local HitRegion = Library:Create('Frame', { BackgroundTransparency=1; Size=UDim2.fromOffset(HitW,boxSz); ZIndex=8; Parent=TOuter })
-        Library:OnHighlight(HitRegion, TOuter, { BorderColor3='AccentColor' }, { BorderColor3='Black' })
+        Library:OnHighlight(HitRegion, TOuter, { BorderSizePixel=2 }, { BorderSizePixel=1 })
         if type(Info.Tooltip)=='string' then Library:AddToolTip(Info.Tooltip, HitRegion) end
 
         function Toggle:Display()
@@ -2154,7 +2154,7 @@ do
         Library:Create('UIGradient', { Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.new(1,1,1)),ColorSequenceKeypoint.new(1,Color3.fromRGB(212,212,212))}); Rotation=90; Parent=DropdownInner })
         local Arrow = Library:Create('ImageLabel', { AnchorPoint=Vector2.new(0,0.5); BackgroundTransparency=1; Position=UDim2.new(1,-S(16),0.5,0); Size=UDim2.fromOffset(S(12),S(12)); Image='rbxassetid://6282522798'; ZIndex=8; Parent=DropdownInner })
         local ItemLabel = Library:CreateLabel({ PreserveCase=true; Size=UDim2.new(1,-S(20),1,0); Position=UDim2.new(0,S(4),0,0); TextSize=S(13); Text=''; TextXAlignment=Enum.TextXAlignment.Left; ZIndex=8; Parent=DropdownInner })
-        Library:OnHighlight(DropdownOuter, DropdownOuter, { BorderColor3='AccentColor' }, { BorderColor3='Black' })
+        Library:OnHighlight(DropdownOuter, DropdownOuter, { BorderSizePixel=2 }, { BorderSizePixel=1 })
         if type(Info.Tooltip)=='string' then Library:AddToolTip(Info.Tooltip, DropdownOuter) end
 
         local MAX = IsMobile and 6 or 8
@@ -2192,10 +2192,11 @@ do
                     if DropdownData.Value[v] then s = s..Library:TranslateString(v)..', ' end
                 end
                 s = s:sub(1,-3)
-                if #s > 20 then s = s:sub(1, 20)..'...' end
             else
                 s = DropdownData.Value and Library:TranslateString(DropdownData.Value) or ''
             end
+            if #s > 35 then s = s:sub(1, 35)..'...' end
+            if s == '' then s = '...' end
             if ItemLabel and ItemLabel.Parent then ItemLabel.Text = s end
         end
 
@@ -2942,13 +2943,15 @@ function Library:CreateWindow(...)
         local tbW = Library:GetTextBounds(tabDisplayName, Library.Font, tabFontSz) + S(IsMobile and 22 or 18)
         local TBtn = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderColor3=Library.OutlineColor; Size=UDim2.new(0,tbW,1,0); ZIndex=1; Parent=TabArea })
         Library:AddToRegistry(TBtn, { BackgroundColor3='BackgroundColor'; BorderColor3='OutlineColor' })
-        -- black outline drawn inside the tab box
-        Library:Create('Frame', { BackgroundTransparency=1; BorderColor3=Color3.new(0,0,0); BorderMode=Enum.BorderMode.Inset; BorderSizePixel=2; Size=UDim2.new(1,0,1,0); ZIndex=2; Parent=TBtn })
         local TBtnLabel = Library:CreateLabel({ Size=UDim2.new(1,0,1,-1); TextSize=tabFontSz; Text=tabDisplayName; PreserveCase=true; ZIndex=3; Parent=TBtn })
+        -- black inner outline, only shown on the selected tab, drawn on top of everything
+        local TInline = Library:Create('Frame', { BackgroundTransparency=1; BorderColor3=Color3.new(0,0,0); BorderSizePixel=1; Size=UDim2.new(1,-2,1,-2); Position=UDim2.new(0,1,0,1); Visible=false; ZIndex=6; Parent=TBtn })
         Library:RemoveFromRegistry(TBtnLabel)
         TBtnLabel.TextColor3 = Color3.fromRGB(110,110,110)
         Tab.Button = TBtn
         Tab.NaturalW = tbW
+        Window.__tabSeq = (Window.__tabSeq or 0) + 1
+        Tab.Seq = Window.__tabSeq
         table.insert(Library.TabResizeCallbacks, function()
             if not TBtn.Parent then return end
             if IsMobile then
@@ -2964,10 +2967,11 @@ function Library:CreateWindow(...)
             end
             -- Tabs fill the whole row, each taking a share of the width
             -- proportional to its own text width. Text size never shrinks.
-            local total, sumW = 0, 0
+            local total, sumW, cumBefore = 0, 0, 0
             for _, t in next, Window.Tabs do
                 total = total + 1
                 sumW  = sumW + (t.NaturalW or 0)
+                if (t.Seq or 0) < (Tab.Seq or 0) then cumBefore = cumBefore + (t.NaturalW or 0) end
             end
             if total > 0 and sumW > 0 then
                 local curW     = Outer.Size.X.Offset
@@ -2976,7 +2980,11 @@ function Library:CreateWindow(...)
                 local tabAreaW = TabArea.AbsoluteSize.X
                 if tabAreaW <= 0 then tabAreaW = curW - 34 end
                 local availW   = tabAreaW - (total - 1) * padding
-                local myW      = math.max(10, math.floor(availW * (tbW / sumW)))
+                -- Cumulative tiling: each tab fills up to its boundary so the row
+                -- has no leftover gap (the last tab reaches the right edge exactly).
+                local left     = math.floor(cumBefore / sumW * availW)
+                local right    = math.floor((cumBefore + tbW) / sumW * availW)
+                local myW      = math.max(10, right - left)
                 TBtn.Size          = UDim2.new(0, myW, 1, 0)
                 TBtnLabel.TextSize = tabFontSz
                 TabLayout.Padding  = UDim.new(0, padding)
@@ -3044,12 +3052,14 @@ function Library:CreateWindow(...)
             TBtnLabel.TextColor3 = Color3.new(1,1,1)
             TBtn.BackgroundColor3 = Library.MainColor
             if Library.RegistryMap[TBtn] then Library.RegistryMap[TBtn].Properties.BackgroundColor3 = 'MainColor' end
+            TInline.Visible = true
         end
         function Tab:HideTab()
             TUnder.Visible = false; TFrame.Visible = false
             TBtnLabel.TextColor3 = Color3.fromRGB(110,110,110)
             TBtn.BackgroundColor3 = Library.BackgroundColor
             if Library.RegistryMap[TBtn] then Library.RegistryMap[TBtn].Properties.BackgroundColor3 = 'BackgroundColor' end
+            TInline.Visible = false
         end
         function Tab:SetLayoutOrder(p) TBtn.LayoutOrder = p; TabLayout:ApplyLayout() end
 
