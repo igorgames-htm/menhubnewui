@@ -1,8 +1,16 @@
+--[[ Luraph Macros (no-ops when not obfuscated) ]]
+if not LPH_OBFUSCATED then
+    LPH_JIT            = LPH_JIT            or function(f) return f end
+    LPH_JIT_MAX        = LPH_JIT_MAX        or function(f) return f end
+    LPH_NO_VIRTUALIZE  = LPH_NO_VIRTUALIZE  or function(f) return f end
+    LPH_NO_UPVALUES    = LPH_NO_UPVALUES    or function(f) return f end
+end
+
 getgenv().Library = (function()
 local Services = setmetatable({}, {
-    __index = function(_, k)
-        local ok, res = pcall(function() return game:GetService(k) end)
-        if ok and res then return res end
+    __index = function(self, k)
+        local ok, res = pcall(game.GetService, game, k)
+        if ok and res then rawset(self, k, res) return res end
         return nil
     end
 })
@@ -60,12 +68,26 @@ local Library = {
 Library.Toggles = Toggles
 Library.Options = Options
 
+-- Time-sliced UI construction: while Library.StreamedBuild is truthy, element
+-- creation yields whenever it has consumed ~6ms of the current frame, so
+-- building hundreds of elements never freezes a single frame.
+do
+    local LastYield = os.clock()
+    function Library:BuildTick()
+        if not Library.StreamedBuild then return end
+        if os.clock() - LastYield >= 0.006 then
+            task.wait()
+            LastYield = os.clock()
+        end
+    end
+end
+
 function Library:RegisterVisibilityCallback(fn) table.insert(self.VisibilityCallbacks, fn) end
 function Library:RegisterIconSizeCallback(fn) table.insert(self.IconSizeCallbacks, fn) end
 
 do
     local step, hue = 0, 0
-    table.insert(Library.Signals, Services.RunService.RenderStepped:Connect(function(dt)
+    table.insert(Library.Signals, Services.RunService.RenderStepped:Connect(LPH_NO_VIRTUALIZE(function(dt)
         step = step + dt
         if step >= 1/60 then
             step = 0
@@ -73,7 +95,7 @@ do
             Library.CurrentRainbowHue   = hue
             Library.CurrentRainbowColor = Color3.fromHSV(hue, 0.8, 1)
         end
-    end))
+    end)))
 end
 
 local function GetPlayersString()
@@ -255,8 +277,20 @@ function Library:IsMouseOverFrame(Frame)
     return px >= ap.X and px <= ap.X + as.X and py >= ap.Y and py <= ap.Y + as.Y
 end
 
-function Library:UpdateDependencyBoxes()
-    for _, db in next, Library.DependencyBoxes do db:Update() end
+-- Coalesced: many SetValue/Add* calls per frame collapse into ONE pass over all
+-- dependency boxes on the next scheduler step (was O(elements x boxes) at load).
+do
+    local Pending = false
+    function Library:UpdateDependencyBoxes()
+        if Pending then return end
+        Pending = true
+        task.defer(function()
+            Pending = false
+            pcall(function()
+                for _, db in next, Library.DependencyBoxes do db:Update() end
+            end)
+        end)
+    end
 end
 
 function Library:MapValue(v, a0, a1, b0, b1)
@@ -1032,6 +1066,7 @@ do
     local Funcs = {}
 
     function Funcs:AddColorPicker(Idx, Info)
+        Library:BuildTick()
         assert(Info.Default, 'AddColorPicker: Missing default value.')
         local TextLabelRef = self.TextLabel
 
@@ -1577,6 +1612,7 @@ do
     end
 
     function Funcs:AddKeyPicker(Idx, Info)
+        Library:BuildTick()
         local ParentObj = self
         local TextLabelRef        = self.TextLabel
         assert(Info.Default, 'AddKeyPicker: Missing default value.')
@@ -1791,6 +1827,7 @@ do
     end
 
     function Funcs:AddLabel(Text, DoesWrap)
+        Library:BuildTick()
         local Label = {}
         local Groupbox    = self
         local TextLabelRef    = Library:CreateLabel({
@@ -1991,6 +2028,7 @@ do
     function Funcs:AddDivider() end
 
     function Funcs:AddButton(...)
+        Library:BuildTick()
         local Button = {}
         local args = { ... }
         local info = type(args[1]) == 'table' and args[1] or { Text=args[1]; Func=args[2] }
@@ -2057,6 +2095,7 @@ do
     end
 
     function Funcs:AddInput(Idx, Info)
+        Library:BuildTick()
         assert(Info.Text, 'AddInput: Missing `Text`.')
         local Textbox = { Value=Info.Default or ''; Numeric=Info.Numeric; Finished=Info.Finished; Type='Input'; Callback=Info.Callback or function() end }
         local Groupbox = self
@@ -2120,6 +2159,7 @@ do
     end
 
     function Funcs:AddToggle(Idx, Info)
+        Library:BuildTick()
         assert(Info.Text, 'AddToggle: Missing `Text`.')
         local Toggle = { Value=Info.Default or false; Type='Toggle'; Callback=Info.Callback or function() end; Addons={}; Risky=Info.Risky }
         local Groupbox = self
@@ -2192,6 +2232,7 @@ do
     end
 
     function Funcs:AddSlider(Idx, Info)
+        Library:BuildTick()
         assert(Info.Default ~= nil, 'AddSlider: Missing default.')
         assert(Info.Text,           'AddSlider: Missing text.')
         assert(Info.Min ~= nil,     'AddSlider: Missing min.')
@@ -2267,6 +2308,7 @@ do
     end
 
     function Funcs:AddDropdown(Idx, Info)
+        Library:BuildTick()
         if Info.SpecialType == 'Player' then Info.Values = GetPlayersString(); Info.AllowNull = true
         elseif Info.SpecialType == 'Team' then Info.Values = GetTeamsString(); Info.AllowNull = true end
         assert(Info.Values, 'AddDropdown: Missing Values.')
@@ -2453,6 +2495,7 @@ do
     end
 
     function Funcs:AddDependencyBox()
+        Library:BuildTick()
         local Depbox = { Dependencies = {} }
         local Groupbox = self
         local Holder = Library:Create('Frame', { BackgroundTransparency=1; Size=UDim2.new(1,0,0,0); Visible=false; Parent=Groupbox.Container })
@@ -3090,6 +3133,7 @@ function Library:CreateWindow(...)
     function Window:SetWindowTitle(t) Library:SetTRText(TitleLabel, t) end
 
     function Window:AddTab(Name)
+        Library:BuildTick()
         local Tab = { Groupboxes={}; Tabboxes={} }
         local tabDisplayName = tostring(Name or "")
 
@@ -3218,6 +3262,7 @@ function Library:CreateWindow(...)
         function Tab:SetLayoutOrder(p) TBtn.LayoutOrder = p; TabLayout:ApplyLayout() end
 
         function Tab:AddGroupbox(Info2)
+            Library:BuildTick()
             local Groupbox = {}
             local SliderBarOuter = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,0,S(40)); ZIndex=2; Parent=Info2.Side==1 and LeftSide or RightSide })
             Library:AddToRegistry(SliderBarOuter, { BackgroundColor3='BackgroundColor'; BorderColor3='OutlineColor' })
@@ -3247,6 +3292,7 @@ function Library:CreateWindow(...)
         function Tab:AddRightGroupbox(n) return Tab:AddGroupbox({ Side=2; Name=n }) end
 
         function Tab:AddTabbox(Info2)
+            Library:BuildTick()
             local Tabbox = { Tabs={} }
             local SliderBarOuter = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,0,0); ZIndex=2; Parent=Info2.Side==1 and LeftSide or RightSide })
             Library:AddToRegistry(SliderBarOuter, { BackgroundColor3='BackgroundColor'; BorderColor3='OutlineColor' })
@@ -3257,6 +3303,7 @@ function Library:CreateWindow(...)
             Library:Create('UIListLayout', { FillDirection=Enum.FillDirection.Horizontal; SortOrder=Enum.SortOrder.LayoutOrder; Padding=UDim.new(0,0); Parent=TabBtns })
 
             function Tabbox:AddTab(TabName)
+                Library:BuildTick()
                 local TBTab = {}
                 local ButtonCount = 0
                 for _ in next, Tabbox.Tabs do ButtonCount = ButtonCount + 1 end
@@ -3346,6 +3393,7 @@ function Library:CreateWindow(...)
             Library:Create('UIListLayout', { FillDirection=Enum.FillDirection.Horizontal; SortOrder=Enum.SortOrder.LayoutOrder; Padding=UDim.new(0,0); Parent=TabBtns })
 
             function Tabbox:AddTab(TabName)
+                Library:BuildTick()
                 local TBTab = {}
                 local ButtonCount = 0
                 for _ in next, Tabbox.Tabs do ButtonCount = ButtonCount + 1 end
@@ -3466,6 +3514,7 @@ function Library:CreateWindow(...)
             RightSide.Visible = false
 
             function SubTabSystem:AddTab(SubName)
+                Library:BuildTick()
                 local ST = { Groupboxes={}; Tabboxes={} }
                 local subDisplayName = tostring(SubName or "")
 
@@ -3503,6 +3552,7 @@ function Library:CreateWindow(...)
                 end
 
                 function ST:AddGroupbox(Info3)
+                    Library:BuildTick()
                     local Groupbox = {}
                     local SliderBarOuter = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,0,S(40)); ZIndex=2; Parent=Info3.Side==1 and STLeft or STRight })
                     Library:AddToRegistry(SliderBarOuter, { BackgroundColor3='BackgroundColor'; BorderColor3='OutlineColor' })
@@ -3528,6 +3578,7 @@ function Library:CreateWindow(...)
                 function ST:AddRightGroupbox(n) return ST:AddGroupbox({ Side=2; Name=n }) end
 
                 function ST:AddTabbox(Info3)
+                    Library:BuildTick()
                     local Tabbox2 = { Tabs={} }
                     local SliderBarOuter = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,0,0); ZIndex=2; Parent=Info3.Side==1 and STLeft or STRight })
                     Library:AddToRegistry(SliderBarOuter, { BackgroundColor3='BackgroundColor'; BorderColor3='OutlineColor' })
@@ -3538,6 +3589,7 @@ function Library:CreateWindow(...)
                     Library:Create('UIListLayout', { FillDirection=Enum.FillDirection.Horizontal; SortOrder=Enum.SortOrder.LayoutOrder; Padding=UDim.new(0,0); Parent=TabBtns2 })
 
                     function Tabbox2:AddTab(TN)
+                        Library:BuildTick()
                         local TBTab2 = {}
                         local nc = 0; for _ in next, Tabbox2.Tabs do nc=nc+1 end; nc=nc+1
                         local Button2 = Library:Create('Frame', { BackgroundColor3=Library.MainColor; BorderColor3=Library.OutlineColor; BorderSizePixel=1; Size=UDim2.new(1/nc,0,1,0); ZIndex=6; Parent=TabBtns2 })
