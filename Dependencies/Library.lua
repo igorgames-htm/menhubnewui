@@ -430,6 +430,52 @@ function Library:MakeDraggable(Frame, DragHandleOrCutoff)
     end)
 end
 
+function Library:MakeDraggableDirect(Frame, DragHandleOrCutoff)
+    local DragHandle = (typeof(DragHandleOrCutoff) == 'Instance' and DragHandleOrCutoff) or Frame
+    local Cutoff = (type(DragHandleOrCutoff) == 'number' and DragHandleOrCutoff)
+
+    DragHandle.InputBegan:Connect(function(Input)
+        if Library:IsPointerInput(Input) and not Library:MouseIsOverOpenedFrame() then
+            if Cutoff then
+                local MouseY = Input.Position.Y - Frame.AbsolutePosition.Y
+                if MouseY > Cutoff then return end
+            end
+
+            local dragging  = true
+            local dragStart = Input.Position
+            local startPos  = Frame.AbsolutePosition
+            local dragInput = Input
+            local pAbs      = Frame.Parent.AbsolutePosition
+
+            local moveConn = Services.UserInputService.InputChanged:Connect(function(mInput)
+                if mInput.UserInputType == Enum.UserInputType.MouseMovement
+                    or mInput.UserInputType == Enum.UserInputType.Touch then
+                    dragInput = mInput
+                end
+            end)
+
+            local rsConn
+            rsConn = Services.RunService.RenderStepped:Connect(function()
+                if not dragging then rsConn:Disconnect() return end
+                local delta = dragInput.Position - dragStart
+                Frame.Position = UDim2.fromOffset(
+                    startPos.X + delta.X - pAbs.X,
+                    startPos.Y + delta.Y - pAbs.Y
+                )
+            end)
+
+            local endConn
+            endConn = Services.UserInputService.InputEnded:Connect(function(eInput)
+                if Library:IsPointerInput(eInput) then
+                    dragging = false
+                    moveConn:Disconnect()
+                    endConn:Disconnect()
+                end
+            end)
+        end
+    end)
+end
+
 function Library:AddToolTip(InfoStr, HoverInstance)
     local tip = Library:Create('Frame', {
         BackgroundColor3  = Library.MainColor;
@@ -688,7 +734,7 @@ do
     Library:Create('UIPadding',    { PaddingLeft = UDim.new(0, S(5)); Parent = KeybindContainer })
     Library.KeybindFrame     = KeybindOuter
     Library.KeybindContainer = KeybindContainer
-    Library:MakeDraggable(KeybindOuter)
+    Library:MakeDraggableDirect(KeybindOuter)
 end
 
 function Library:SetWatermarkVisibility(b)  Library.Watermark.Visible = b end
@@ -806,6 +852,99 @@ function Library:BindResizeHandle(inst, getSize, setSize, onFinish)
         end
     end)
 end
+function Library:BindResizeHandleGhost(clipInst, circleInst, getSize, setSize, onFinish)
+    if not clipInst then return end
+    clipInst.Active = true
+    local defaultTrans = circleInst.BackgroundTransparency
+
+    clipInst.InputBegan:Connect(function(Input)
+        if not Library:IsPointerInput(Input) then return end
+
+        circleInst.BackgroundTransparency = 1
+
+        local startX = Input.Position.X
+        local startY = Input.Position.Y
+        local startW, startH = 0, 0
+        if type(getSize) == 'function' then
+            startW, startH = getSize()
+        end
+
+        local minW = IsMobile and S(280) or 460
+        local minH = IsMobile and S(320) or 420
+
+        local drawOff = Vector2.new(Input.Position.X, Input.Position.Y) - Services.UserInputService:GetMouseLocation()
+        local parentAbs = (clipInst.Parent and clipInst.Parent.AbsolutePosition) or Vector2.new(0, 0)
+        local gx = parentAbs.X - drawOff.X
+        local gy = parentAbs.Y - drawOff.Y
+
+        local GhostFill = Drawing.new("Square")
+        GhostFill.Filled       = true
+        GhostFill.Thickness    = 0
+        GhostFill.Transparency = 0.35
+        GhostFill.Color        = Library.AccentColor
+        GhostFill.Position     = Vector2.new(gx, gy)
+        GhostFill.Size         = Vector2.new(startW, startH)
+        GhostFill.Visible      = true
+
+        local GhostBorder = Drawing.new("Square")
+        GhostBorder.Filled       = false
+        GhostBorder.Thickness    = 1
+        GhostBorder.Transparency = 1
+        GhostBorder.Color        = Library.AccentColor
+        GhostBorder.Position     = Vector2.new(gx, gy)
+        GhostBorder.Size         = Vector2.new(startW, startH)
+        GhostBorder.Visible      = true
+
+        local dragging = true
+        local dragInput = Input
+
+        local moveConn = Services.UserInputService.InputChanged:Connect(function(mInput)
+            if mInput.UserInputType == Enum.UserInputType.MouseMovement
+                or mInput.UserInputType == Enum.UserInputType.Touch then
+                dragInput = mInput
+            end
+        end)
+
+        local rsConn
+        rsConn = Services.RunService.RenderStepped:Connect(function()
+            if not dragging then rsConn:Disconnect() return end
+            local dx = dragInput.Position.X - startX
+            local dy = dragInput.Position.Y - startY
+            local nw = math.max(startW + dx, minW)
+            local nh = math.max(startH + dy, minH)
+            GhostFill.Color   = Library.AccentColor
+            GhostBorder.Color = Library.AccentColor
+            GhostFill.Size    = Vector2.new(nw, nh)
+            GhostBorder.Size  = Vector2.new(nw, nh)
+        end)
+
+        local endConn
+        endConn = Services.UserInputService.InputEnded:Connect(function(eInput)
+            if not Library:IsPointerInput(eInput) then return end
+            dragging = false
+            moveConn:Disconnect()
+            endConn:Disconnect()
+
+            local dx = dragInput.Position.X - startX
+            local dy = dragInput.Position.Y - startY
+            GhostFill:Remove()
+            GhostBorder:Remove()
+
+            if type(setSize) == 'function' then
+                setSize(startW + dx, startH + dy)
+            end
+
+            circleInst.BackgroundTransparency = defaultTrans
+
+            if type(onFinish) == 'function' then
+                onFinish()
+            else
+                Library:SaveThemeDefaults()
+            end
+        end)
+    end)
+end
+
 function Library:SetWatermark(Text)
     local textWidth = Library:GetTextBounds(Text, Library.Font, S(14))
     Library.Watermark.Size = UDim2.fromOffset(textWidth + S(15), S(20))
@@ -2537,13 +2676,8 @@ function Library:CreateWindow(...)
         Parent          = Inner;
     })
 
-    local function applyHandleSize(size)
-        if not Window.ResizeHandle or not Window.ResizeHandle.Parent then return end
-        local n = math.clamp(math.floor(tonumber(size) or Library.IconSize or 28), 14, 40)
-        local side = S(n)
-        Window.ResizeHandle.Size     = UDim2.fromOffset(side, side)
-        Window.ResizeHandle.Position = UDim2.new(1, -S(4), 1, -S(4))
-        Window.ResizeHandle.ZIndex   = 300
+    local function applyHandleSize(_size)
+        -- semi-circle handle is fixed-size; no resize needed
     end
     function Window:SetIconSize(size)
         applyHandleSize(size)
@@ -2570,19 +2704,39 @@ function Library:CreateWindow(...)
     function Window:ResetWindowSize()
         self:SetWindowSize(WinW, WinH, true)
     end
-    if Config.Icon then
-        local iconRef = Library:Create('ImageButton', {
+    do
+        local scClip = Library:Create('Frame', {
+            Active                  = true;
             AnchorPoint             = Vector2.new(1, 1);
             BackgroundTransparency  = 1;
-            Position                = UDim2.new(1, -S(4), 1, -S(4));
-            Size                    = UDim2.fromOffset(S(28), S(28));
-            Image                   = Config.Icon;
+            ClipsDescendants        = true;
+            Position                = UDim2.new(1, 0, 1, 0);
+            Size                    = UDim2.fromOffset(S(48), S(48));
             ZIndex                  = 300;
             Parent                  = Inner;
         })
-        Window.ResizeHandle = iconRef
-        applyHandleSize(Library.IconSize)
-        Library:BindResizeHandle(iconRef, function()
+        local scCircle = Library:Create('Frame', {
+            AnchorPoint             = Vector2.new(0, 0);
+            BackgroundColor3        = Library.AccentColor;
+            BackgroundTransparency  = 0.4;
+            BorderSizePixel         = 0;
+            Position                = UDim2.fromOffset(0, 0);
+            Size                    = UDim2.fromOffset(S(96), S(96));
+            ZIndex                  = 301;
+            Parent                  = scClip;
+        })
+        Library:AddToRegistry(scCircle, { BackgroundColor3 = 'AccentColor' })
+        Library:Create('UICorner', { CornerRadius = UDim.new(1, 0); Parent = scCircle })
+        Window.ResizeHandle = scClip
+
+        scClip.MouseEnter:Connect(function()
+            scCircle.BackgroundTransparency = 0.65
+        end)
+        scClip.MouseLeave:Connect(function()
+            scCircle.BackgroundTransparency = 0.4
+        end)
+
+        Library:BindResizeHandleGhost(scClip, scCircle, function()
             return Outer.Size.X.Offset, Outer.Size.Y.Offset
         end, function(w, h)
             Window:SetWindowSize(w, h, true)
