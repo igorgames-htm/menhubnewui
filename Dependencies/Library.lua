@@ -2711,7 +2711,7 @@ function Library:CreateWindow(...)
             BackgroundTransparency  = 1;
             ClipsDescendants        = true;
             Position                = UDim2.new(1, 0, 1, 0);
-            Size                    = UDim2.fromOffset(S(34), S(34));
+            Size                    = UDim2.fromOffset(S(22), S(22));
             ZIndex                  = 300;
             Parent                  = Inner;
         })
@@ -2721,7 +2721,7 @@ function Library:CreateWindow(...)
             BackgroundTransparency  = 0.4;
             BorderSizePixel         = 0;
             Position                = UDim2.fromOffset(0, 0);
-            Size                    = UDim2.fromOffset(S(68), S(68));
+            Size                    = UDim2.fromOffset(S(44), S(44));
             ZIndex                  = 301;
             Parent                  = scClip;
         })
