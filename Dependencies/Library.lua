@@ -3952,18 +3952,28 @@ function Library:CreatePrompt(config)
         ZIndex                  = 2000,
         Parent                  = Library.ScreenGui,
     })
-    outer.MouseButton1Click:Connect(function() outer:Destroy() end)
+    outer.MouseButton1Click:Connect(function()
+        local mouse = game:GetService("UserInputService"):GetMouseLocation()
+        local pos  = inner.AbsolutePosition
+        local size = inner.AbsoluteSize
+        if mouse.X < pos.X or mouse.X > pos.X + size.X
+        or mouse.Y < pos.Y or mouse.Y > pos.Y + size.Y then
+            outer:Destroy()
+        end
+    end)
 
     local isConfirm = config.Mode == "Confirm"
     local w = isConfirm and S(300) or S(400)
     local h = isConfirm and S(120) or S(350)
 
-    local inner = Library:Create("Frame", {
+    local inner = Library:Create("TextButton", {
         AnchorPoint       = Vector2.new(0.5, 0.5),
         Position          = UDim2.fromScale(0.5, 0.5),
         Size              = UDim2.fromOffset(w, h),
         BackgroundColor3  = Library.BackgroundColor,
         BorderColor3      = Library.OutlineColor,
+        AutoButtonColor   = false,
+        Text              = "",
         Active            = true,
         ZIndex            = 2001,
         Parent            = outer,
