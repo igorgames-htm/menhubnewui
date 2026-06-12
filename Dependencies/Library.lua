@@ -1,11 +1,3 @@
---[[ Luraph Macros (no-ops when not obfuscated) ]]
-if not LPH_OBFUSCATED then
-    LPH_JIT            = LPH_JIT            or function(f) return f end
-    LPH_JIT_MAX        = LPH_JIT_MAX        or function(f) return f end
-    LPH_NO_VIRTUALIZE  = LPH_NO_VIRTUALIZE  or function(f) return f end
-    LPH_NO_UPVALUES    = LPH_NO_UPVALUES    or function(f) return f end
-end
-
 getgenv().Library = (function()
 local Services = setmetatable({}, {
     __index = function(self, k)
@@ -85,18 +77,9 @@ end
 function Library:RegisterVisibilityCallback(fn) table.insert(self.VisibilityCallbacks, fn) end
 function Library:RegisterIconSizeCallback(fn) table.insert(self.IconSizeCallbacks, fn) end
 
-do
-    local step, hue = 0, 0
-    table.insert(Library.Signals, Services.RunService.RenderStepped:Connect(LPH_NO_VIRTUALIZE(function(dt)
-        step = step + dt
-        if step >= 1/60 then
-            step = 0
-            hue  = (hue + 1/400) % 1
-            Library.CurrentRainbowHue   = hue
-            Library.CurrentRainbowColor = Color3.fromHSV(hue, 0.8, 1)
-        end
-    end)))
-end
+-- (removed) dead rainbow RenderStepped loop: nothing consumed CurrentRainbowHue/Color.
+Library.CurrentRainbowHue   = 0
+Library.CurrentRainbowColor = Color3.fromHSV(0, 0.8, 1)
 
 local function GetPlayersString()
     local t = {}
@@ -3714,6 +3697,8 @@ function Library:CreateWindow(...)
                 Library.MenuRestPos = Outer.Position
             end
             Outer.Position = OFFSCREEN_POS
+            -- Actually stop rendering the whole tree; off-screen alone still costs every frame.
+            Outer.Visible = false
         end
         Library.MenuShown = isVisible
 
