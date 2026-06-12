@@ -282,7 +282,12 @@ function Library:MapValue(v, a0, a1, b0, b1)
 end
 
 function Library:GetTextBounds(Text, Font, Size, Res)
-    local b = Services.TextService:GetTextSize(Text, Size, Font, Res or Vector2.new(1920, 1080))
+    -- GetTextSize only accepts Enum.Font; if a new-style Font object was set fall back
+    local ok, b = pcall(Services.TextService.GetTextSize, Services.TextService, Text, Size, Font, Res or Vector2.new(1920, 1080))
+    if not ok or not b then
+        local ok2, b2 = pcall(Services.TextService.GetTextSize, Services.TextService, Text, Size, Enum.Font.Code, Res or Vector2.new(1920, 1080))
+        b = ok2 and b2 or Vector2.new(200, Size)
+    end
     return b.X, b.Y
 end
 
@@ -971,7 +976,7 @@ end
 
 function Library:Notify(Text, Time)
     if not Text or Text == "" then return end
-    local xw = Library:GetTextBounds(Text, Library.Font, S(14))
+    local xw = Library:GetTextBounds(Text, Library.Font, S(14)) or 200
     local H   = S(22)
     local Outer = Library:Create('Frame', {
         BorderColor3      = Color3.new(0,0,0);
@@ -1005,7 +1010,8 @@ function Library:Notify(Text, Time)
 end
 
 function Library:KillNotify(Text, Time)
-    local xw = Library:GetTextBounds(Text, Library.Font, S(14))
+    if not Text or Text == "" then return end
+    local xw = Library:GetTextBounds(Text, Library.Font, S(14)) or 200
     local H   = S(22)
     local Outer = Library:Create('Frame', {
         BorderColor3      = Color3.new(0,0,0);
