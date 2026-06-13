@@ -2316,8 +2316,8 @@ do
         local DropdownInner = Library:Create('Frame', { BackgroundColor3=Library.MainColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,1,0); ZIndex=6; Parent=DropdownOuter })
         Library:AddToRegistry(DropdownInner, { BackgroundColor3='MainColor'; BorderColor3='OutlineColor' })
         Library:Create('UIGradient', { Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.new(1,1,1)),ColorSequenceKeypoint.new(1,Color3.fromRGB(212,212,212))}); Rotation=90; Parent=DropdownInner })
-        local Arrow = Library:Create('ImageLabel', { AnchorPoint=Vector2.new(0,0.5); BackgroundTransparency=1; Position=UDim2.new(1,-S(16),0.5,0); Size=UDim2.fromOffset(S(12),S(12)); Image='rbxassetid://6282522798'; ZIndex=8; Parent=DropdownInner })
-        local ItemLabel = Library:CreateLabel({ PreserveCase=true; Size=UDim2.new(1,-S(20),1,0); Position=UDim2.new(0,S(4),0,0); TextSize=S(13); Text=''; TextXAlignment=Enum.TextXAlignment.Left; ZIndex=8; Parent=DropdownInner })
+        local Arrow = Library:CreateLabel({ PreserveCase=true; AnchorPoint=Vector2.new(0.5,0.5); BackgroundTransparency=1; Position=UDim2.new(1,-S(11),0.5,0); Size=UDim2.fromOffset(S(14),S(14)); Text='>'; TextSize=S(14); Font=Enum.Font.GothamBold; ZIndex=8; Parent=DropdownInner })
+        local ItemLabel = Library:CreateLabel({ PreserveCase=true; Size=UDim2.new(1,-S(22),1,0); Position=UDim2.new(0,S(4),0,0); TextSize=S(13); Text=''; TextXAlignment=Enum.TextXAlignment.Left; TextTruncate=Enum.TextTruncate.AtEnd; ZIndex=8; Parent=DropdownInner })
         Library:OnHighlight(DropdownOuter, DropdownOuter, { BorderColor3='OutlineColor' }, { BorderColor3='Black' })
         if type(Info.Tooltip)=='string' then Library:AddToolTip(Info.Tooltip, DropdownOuter) end
 
@@ -2326,7 +2326,7 @@ do
         local ListOuter = Library:Create('Frame', { Active=true; BorderColor3=Color3.new(0,0,0); Size=UDim2.fromOffset(200, MAX*itemH+2); ZIndex=20; Visible=false; Parent=ScreenGui })
         local ListOuterScale = Library:Create('UIScale', { Scale = Library.UIScaleValue or 1.0; Parent = ListOuter })
         table.insert(Library.ThemeScales, ListOuterScale)
-        local ListInner  = Library:Create('Frame', { BackgroundColor3=Library.MainColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; BorderSizePixel=0; Size=UDim2.new(1,0,1,0); ZIndex=21; Parent=ListOuter })
+        local ListInner  = Library:Create('Frame', { Active=true; BackgroundColor3=Library.MainColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; BorderSizePixel=0; Size=UDim2.new(1,0,1,0); ZIndex=21; Parent=ListOuter })
         Library:AddToRegistry(ListInner, { BackgroundColor3='MainColor'; BorderColor3='OutlineColor' })
         local Scroll = Library:Create('ScrollingFrame', {
             BackgroundTransparency  = 1; BorderSizePixel=0; CanvasSize=UDim2.new(0,0,0,0); Size=UDim2.new(1,0,1,0); ZIndex=21; Parent=ListInner;
@@ -2359,7 +2359,6 @@ do
             else
                 s = DropdownData.Value and Library:TranslateString(DropdownData.Value) or ''
             end
-            if #s > 35 then s = s:sub(1, 35)..'...' end
             if s == '' then s = '...' end
             if ItemLabel and ItemLabel.Parent then ItemLabel.Text = s end
         end
@@ -2413,8 +2412,8 @@ do
             Scroll.CanvasSize = UDim2.new(0, 0, 0, count * itemH + 1)
         end
 
-        function DropdownData:OpenDropdown()  ListOuter.Visible = true;  Library.OpenedFrames[ListOuter] = true;  Arrow.Rotation = 180 end
-        function DropdownData:CloseDropdown() ListOuter.Visible = false; Library.OpenedFrames[ListOuter] = nil;   Arrow.Rotation = 0   end
+        function DropdownData:OpenDropdown()  ListOuter.Visible = true;  Library.OpenedFrames[ListOuter] = true;  Arrow.Rotation = 90 end
+        function DropdownData:CloseDropdown() ListOuter.Visible = false; Library.OpenedFrames[ListOuter] = nil;   Arrow.Rotation = 0  end
         function DropdownData:OnChanged(fn)   DropdownData.Changed = fn; fn(DropdownData.Value) end
         function DropdownData:SetValue(val)
             if DropdownData.Multi then
