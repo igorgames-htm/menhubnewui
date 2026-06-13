@@ -15,7 +15,7 @@ ScreenGui.IgnoreGuiInset = true
 ScreenGui.Name = ""
 ScreenGui.Parent = Services.CoreGui
 
-local IsMobile = (rawget(_G, "mobiledebug") == true) or (Services.UserInputService.TouchEnabled and not Services.UserInputService.MouseEnabled)
+local IsTouch  = (rawget(_G, "mobiledebug") == true) or (Services.UserInputService.TouchEnabled and not Services.UserInputService.MouseEnabled)
 
 local Camera       = workspace.CurrentCamera
 local ScreenWidth  = Camera.ViewportSize.X
@@ -47,7 +47,7 @@ local Library = {
     ThemeScales             = {};
     UIScaleValue            = 1.0;
     ScreenGui               = ScreenGui;
-    IsMobile                = IsMobile;
+    IsMobile                = false;
     Scale                   = SCALE;
     VisibilityCallbacks     = {};
     IconSizeCallbacks       = {};
@@ -533,31 +533,21 @@ function Library:AddToolTip(InfoStr, HoverInstance)
     Library:AddToRegistry(tip,    { BackgroundColor3 = 'MainColor'; BorderColor3 = 'OutlineColor' })
     Library:AddToRegistry(TooltipLabel, { TextColor3 = 'FontColor'; Font = 'Font' })
 
-    if IsMobile then
-        HoverInstance.InputBegan:Connect(function(Input)
-            if Input.UserInputType ~= Enum.UserInputType.Touch then return end
+    local hovering = false
+    HoverInstance.MouseEnter:Connect(function()
+        hovering = true
+        tip.Visible = true
+        while hovering do
             local scale = Library.UIScaleValue or 1.0
-            tip.Position = UDim2.fromOffset((Input.Position.X + S(12)) / scale, (Input.Position.Y + S(10)) / scale)
-            tip.Visible  = true
-            task.delay(2.5, function() tip.Visible = false end)
-        end)
-    else
-        local hovering = false
-        HoverInstance.MouseEnter:Connect(function()
-            hovering = true
-            tip.Visible = true
-            while hovering do
-                local scale = Library.UIScaleValue or 1.0
-                local loc = Services.UserInputService:GetMouseLocation()
-                tip.Position = UDim2.fromOffset((loc.X + 15) / scale, (loc.Y + 10) / scale)
-                Services.RunService.Heartbeat:Wait()
-            end
-        end)
-        HoverInstance.MouseLeave:Connect(function()
-            hovering   = false
-            tip.Visible = false
-        end)
-    end
+            local loc = Services.UserInputService:GetMouseLocation()
+            tip.Position = UDim2.fromOffset((loc.X + 15) / scale, (loc.Y + 10) / scale)
+            Services.RunService.Heartbeat:Wait()
+        end
+    end)
+    HoverInstance.MouseLeave:Connect(function()
+        hovering   = false
+        tip.Visible = false
+    end)
 end
 
 function Library:OnHighlight(HoverInst, TargetInst, OnProps, OffProps)
@@ -582,7 +572,7 @@ function Library:OnHighlight(HoverInst, TargetInst, OnProps, OffProps)
     local enter = HoverInst.MouseEnter
     local leave = HoverInst.MouseLeave
 
-    if not IsMobile and enter and leave then
+    if enter and leave then
         hook(enter, function() apply(OnProps) end)
         hook(leave, function() apply(OffProps) end)
     else
@@ -761,10 +751,6 @@ end
 
 function Library:SetWatermarkVisibility(b)  Library.Watermark.Visible = b end
 function Library:SetKeybindVisibility(b)
-    if IsMobile then
-        Library.KeybindFrame.Visible = false
-        return
-    end
     Library.KeybindFrame.Visible = b
 end
 function Library:SaveThemeDefaults()
@@ -891,8 +877,8 @@ function Library:BindResizeHandleGhost(clipInst, circleInst, getSize, setSize, o
             startW, startH = getSize()
         end
 
-        local minW = IsMobile and S(280) or 460
-        local minH = IsMobile and S(320) or 420
+        local minW = 460
+        local minH = 420
 
         local drawOff = Vector2.new(Input.Position.X, Input.Position.Y) - Services.UserInputService:GetMouseLocation()
         local parentAbs = (clipInst.Parent and clipInst.Parent.AbsolutePosition) or Vector2.new(0, 0)
@@ -1256,8 +1242,8 @@ do
                 return
             end
             local loc = Services.UserInputService:GetMouseLocation()
-            local px = IsMobile and Input.Position.X or loc.X
-            local py = IsMobile and Input.Position.Y or loc.Y
+            local px = loc.X
+            local py = loc.Y
             local ap, as = PickerFrameOuter.AbsolutePosition, PickerFrameOuter.AbsoluteSize
             if px < ap.X or px > ap.X+as.X or py < ap.Y-DispH-2 or py > ap.Y+as.Y then
                 ColorPickerInfo:Hide()
@@ -1617,21 +1603,6 @@ do
         }
         if KeybindInfo.SyncToggleState then Info.Modes = { 'Toggle' }; Info.Mode = 'Toggle' end
 
-        if IsMobile then
-            function KeybindInfo:Update() end
-            function KeybindInfo:GetState() return false end
-            function KeybindInfo:SetValue(data)
-                KeybindInfo.Value = data[1]
-                KeybindInfo.Mode = data[2] or KeybindInfo.Mode
-            end
-            function KeybindInfo:OnClick(fn) KeybindInfo.Clicked = fn end
-            function KeybindInfo:OnChanged(fn) KeybindInfo.Changed = fn; fn(KeybindInfo.Value) end
-            function KeybindInfo:DoClick() end
-            if ParentObj.Addons then table.insert(ParentObj.Addons, KeybindInfo) end
-            Options[Idx] = KeybindInfo
-            return self
-        end
-
         local KeyPickOuter = Library:Create('Frame', { BorderColor3 = Color3.new(0,0,0); Size = UDim2.fromOffset(S(44), S(15)); ZIndex = 15; Active = true; Parent = TextLabelRef })
         local KeyPickInner  = Library:Create('Frame', { BackgroundColor3 = Library.BackgroundColor; BorderColor3 = Library.OutlineColor; BorderMode = Enum.BorderMode.Inset; Size = UDim2.new(1,0,1,0); ZIndex = 16; Parent = KeyPickOuter })
         Library:AddToRegistry(KeyPickInner, { BackgroundColor3 = 'BackgroundColor'; BorderColor3 = 'OutlineColor' })
@@ -1745,9 +1716,6 @@ do
                 ModeOuter.Visible = true; return
             end
             if not Library:IsPointerInput(Input) then return end
-            if IsMobile then
-                KeybindInfo.Toggled = not KeybindInfo.Toggled; KeybindInfo:DoClick(); KeybindInfo:Update(); return
-            end
             Picking = true; DisplayLabel.Text = ''
             local dots = ''
             local dotTask = task.spawn(function()
@@ -1786,8 +1754,8 @@ do
             end
             if Library:IsPointerInput(Input) then
                 local loc = Services.UserInputService:GetMouseLocation()
-                local px = IsMobile and Input.Position.X or loc.X
-                local py = IsMobile and Input.Position.Y or loc.Y
+                local px = loc.X
+                local py = loc.Y
                 local ap, as = ModeOuter.AbsolutePosition, ModeOuter.AbsoluteSize
                 if px < ap.X or px > ap.X+as.X or py < ap.Y-S(20)-1 or py > ap.Y+as.Y then
                     ModeOuter.Visible = false
@@ -1852,7 +1820,7 @@ do
 
     function Funcs:AddDynamicList(Info)
         local Groupbox       = self
-        local ROW_H    = S(IsMobile and 26 or 20)
+        local ROW_H    = S(20)
         local entries  = {}
         local onChange  = Info and Info.OnChanged or function() end
         local textOnly  = Info and Info.TextOnly or false
@@ -2027,7 +1995,7 @@ do
         local Groupbox = self
 
         local function MakeBtn(b)
-            local o = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Size = UDim2.new(1,-S(4),0,S(IsMobile and 26 or 20)); ZIndex=5 })
+            local o = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Size = UDim2.new(1,-S(4),0,S(20)); ZIndex=5 })
             local i = Library:Create('Frame', { BackgroundColor3=Library.MainColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size = UDim2.new(1,0,1,0); ZIndex=6; Parent=o })
             local l = Library:CreateLabel({ Size=UDim2.new(1,0,1,0); TextSize=S(14); Text=b.Text; ZIndex=6; Parent=i })
             Library:Create('UIGradient', { Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.new(1,1,1)),ColorSequenceKeypoint.new(1,Color3.fromRGB(212,212,212))}); Rotation=90; Parent=i })
@@ -2068,7 +2036,7 @@ do
             local info2 = type(args2[1])=='table' and args2[1] or { Text=args2[1]; Func=args2[2] }
             local Sub = { Text=info2.Text; Func=info2.Func; DoubleClick=info2.DoubleClick; Tooltip=info2.Tooltip }
             assert(type(Sub.Func)=='function', 'AddButton sub: missing Func')
-            self.Outer.Size = UDim2.new(0.5, -S(3), 0, S(IsMobile and 26 or 20))
+            self.Outer.Size = UDim2.new(0.5, -S(3), 0, S(20))
             Sub.Outer, Sub.Inner, Sub.Label = MakeBtn(Sub)
             Sub.Outer.Position = UDim2.new(1, S(3), 0, 0)
             Sub.Outer.Size = UDim2.new(1, -S(2), 1, 0)
@@ -2090,7 +2058,7 @@ do
         local Groupbox = self
         Library:CreateLabel({ Size=UDim2.new(1,0,0,S(15)); TextSize=S(14); Text=Info.Text; TextXAlignment=Enum.TextXAlignment.Left; ZIndex=5; Parent=Groupbox.Container })
         Groupbox:AddBlank(1)
-        local BoxHeight = IsMobile and S(26) or S(20)
+        local BoxHeight = S(20)
         local Outer = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Size=UDim2.new(1,-S(4),0,BoxHeight); ZIndex=5; Parent=Groupbox.Container })
         local Inner = Library:Create('Frame', { BackgroundColor3=Library.MainColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,1,0); ZIndex=6; Parent=Outer })
         Library:AddToRegistry(Inner, { BackgroundColor3='MainColor'; BorderColor3='OutlineColor' })
@@ -2152,7 +2120,7 @@ do
         assert(Info.Text, 'AddToggle: Missing `Text`.')
         local Toggle = { Value=Info.Default or false; Type='Toggle'; Callback=Info.Callback or function() end; Addons={}; Risky=Info.Risky }
         local Groupbox = self
-        local boxSz = IsMobile and S(16) or S(13)
+        local boxSz = S(13)
         local TOuter = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Size=UDim2.fromOffset(boxSz,boxSz); ZIndex=5; Parent=Groupbox.Container })
         Library:AddToRegistry(TOuter, { BorderColor3='Black' })
         local TInner = Library:Create('Frame', { BackgroundColor3=Library.MainColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,1,0); ZIndex=6; Parent=TOuter })
@@ -2165,7 +2133,7 @@ do
         end
         Groupbox.Container:GetPropertyChangedSignal('AbsoluteSize'):Connect(syncTLW)
         task.defer(syncTLW)
-        local HitW = IsMobile and S(220) or S(155)
+        local HitW = S(155)
         local HitRegion = Library:Create('Frame', { BackgroundTransparency=1; Size=UDim2.fromOffset(HitW,boxSz); ZIndex=8; Parent=TOuter })
         Library:OnHighlight(HitRegion, TOuter, { BorderColor3='OutlineColor' }, { BorderColor3='Black' })
         if type(Info.Tooltip)=='string' then Library:AddToolTip(Info.Tooltip, HitRegion) end
@@ -2191,8 +2159,8 @@ do
         HitRegion.InputBegan:Connect(function(Input)
             if Library:IsPointerInput(Input) and not Library:HasOpenedFrames() then
                 local loc = Services.UserInputService:GetMouseLocation()
-                local px = IsMobile and Input.Position.X or loc.X
-                local py = IsMobile and Input.Position.Y or loc.Y
+                local px = loc.X
+                local py = loc.Y
                 for _, addon in next, Toggle.Addons do
                     local frame = addon.DisplayFrame
                     if frame and frame.Parent then
@@ -2229,7 +2197,7 @@ do
         assert(Info.Rounding ~= nil,'AddSlider: Missing rounding.')
         local Slider = { Value=Info.Default; Min=Info.Min; Max=Info.Max; Rounding=Info.Rounding; MaxSize=S(232); Type='Slider'; Callback=Info.Callback or function() end }
         local Groupbox = self
-        local slH = IsMobile and S(18) or S(13)
+        local slH = S(13)
         local SOuter = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Size=UDim2.new(1,-S(4),0,slH); ZIndex=5; Parent=Groupbox.Container })
         Library:AddToRegistry(SOuter, { BorderColor3='Black' })
         local SInner = Library:Create('Frame', { BackgroundColor3=Library.MainColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,1,0); ZIndex=6; Parent=SOuter })
@@ -2253,11 +2221,14 @@ do
         function Slider:GetValueFromX(x)
             return Round(Library:MapValue(math.clamp(x,0,Slider.MaxSize), 0, Slider.MaxSize, Slider.Min, Slider.Max))
         end
+        local FillTweenInfo = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         function Slider:Display()
             local suf = Info.Suffix or ''
             DropdownLabel.Text = Library:TranslateString(Info.Text)..': '..Slider.Value..suf
             local x = math.ceil(Library:MapValue(Slider.Value, Slider.Min, Slider.Max, 0, Slider.MaxSize))
-            Fill.Size = UDim2.new(0, x, 1, 0)
+            -- Smoothly animate the fill to the target instead of snapping. A new tween
+            -- cancels the previous one, so dragging follows the cursor fluidly.
+            Services.TweenService:Create(Fill, FillTweenInfo, { Size = UDim2.new(0, x, 1, 0) }):Play()
             HideBR.Visible = not (x == Slider.MaxSize or x == 0)
         end
         function Slider:UpdateColors()
@@ -2316,7 +2287,7 @@ do
             if not el:IsA('UIListLayout') then RelOff = RelOff + el.Size.Y.Offset end
         end
 
-        local ddH = IsMobile and S(26) or S(20)
+        local ddH = S(20)
         local DropdownOuter = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Size=UDim2.new(1,-S(4),0,ddH); ZIndex=5; Parent=Groupbox.Container })
         Library:AddToRegistry(DropdownOuter, { BorderColor3='Black' })
         local DropdownInner = Library:Create('Frame', { BackgroundColor3=Library.MainColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,1,0); ZIndex=6; Parent=DropdownOuter })
@@ -2327,8 +2298,8 @@ do
         Library:OnHighlight(DropdownOuter, DropdownOuter, { BorderColor3='OutlineColor' }, { BorderColor3='Black' })
         if type(Info.Tooltip)=='string' then Library:AddToolTip(Info.Tooltip, DropdownOuter) end
 
-        local MAX = IsMobile and 6 or 8
-        local itemH = IsMobile and S(26) or S(20)
+        local MAX = 8
+        local itemH = S(20)
         local ListOuter = Library:Create('Frame', { Active=true; BorderColor3=Color3.new(0,0,0); Size=UDim2.fromOffset(200, MAX*itemH+2); ZIndex=20; Visible=false; Parent=ScreenGui })
         local ListOuterScale = Library:Create('UIScale', { Scale = Library.UIScaleValue or 1.0; Parent = ListOuter })
         table.insert(Library.ThemeScales, ListOuterScale)
@@ -2337,7 +2308,7 @@ do
         local Scroll = Library:Create('ScrollingFrame', {
             BackgroundTransparency  = 1; BorderSizePixel=0; CanvasSize=UDim2.new(0,0,0,0); Size=UDim2.new(1,0,1,0); ZIndex=21; Parent=ListInner;
             TopImage                = 'rbxasset://textures/ui/Scroll/scroll-middle.png'; BottomImage='rbxasset://textures/ui/Scroll/scroll-middle.png';
-            ScrollBarThickness      = IsMobile and S(6) or 3; ScrollBarImageColor3=Library.AccentColor;
+            ScrollBarThickness      = 3; ScrollBarImageColor3=Library.AccentColor;
             ScrollingDirection      = Enum.ScrollingDirection.Y; ElasticBehavior=Enum.ElasticBehavior.Never;
         })
         Library:AddToRegistry(Scroll, { ScrollBarImageColor3='AccentColor' })
@@ -2628,17 +2599,11 @@ function Library:CreateWindow(...)
     local args   = { ... }
     local Config = type(args[1]) == 'table' and args[1] or { Title=args[1]; AutoShow=args[2] }
     if type(Config.Title) ~= 'string' then Config.Title = 'Window' end
-    if IsMobile then Config.Title = 'Elite Zone' end
     if type(Config.TabPadding) ~= 'number' then Config.TabPadding = 8 end
     if type(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.2 end
 
     local WinW, WinH
-    if IsMobile then
-        WinW = math.min(ScreenWidth - S(20), S(500))
-        WinH = math.min(ScreenHeight - S(90), S(600))
-        Config.Position  = UDim2.fromOffset(S(10), S(74))
-        Config.AnchorPoint = Vector2.zero
-    else
+    do
         WinW = 680; WinH = 780
         if Config.Center then
             Config.AnchorPoint = Vector2.zero
@@ -2718,8 +2683,8 @@ function Library:CreateWindow(...)
         return { w = Outer.Size.X.Offset, h = Outer.Size.Y.Offset }
     end
     function Window:SetWindowSize(w, h, skipSave)
-        local minW = IsMobile and S(280) or 460
-        local minH = IsMobile and S(320) or 420
+        local minW = 460
+        local minH = 420
         local nw = math.max(math.floor(tonumber(w) or Outer.Size.X.Offset), minW)
         local nh = math.max(math.floor(tonumber(h) or Outer.Size.Y.Offset), minH)
         Outer.Size = UDim2.fromOffset(nw, nh)
@@ -2789,9 +2754,9 @@ function Library:CreateWindow(...)
     local ModalScrollInner = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderColor3=Color3.new(0,0,0); BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,1,0); ZIndex=1; Parent=ModalScrollOuter })
     Library:AddToRegistry(ModalScrollInner, { BackgroundColor3='BackgroundColor' })
 
-    local tabBarH    = IsMobile and S(26) or S(22)
-    local tabConY    = IsMobile and S(42) or S(38)
-    local tabConH    = IsMobile and -S(50) or -S(46)
+    local tabBarH    = S(22)
+    local tabConY    = S(38)
+    local tabConH    = -S(46)
     local TAB_OUTER  = S(4)
     local TabArea = Library:Create('ScrollingFrame', {
         BackgroundTransparency  = 1;
@@ -2799,7 +2764,7 @@ function Library:CreateWindow(...)
         Position                = UDim2.new(0,S(8),0,S(8));
         Size                    = UDim2.new(1,-S(16),0,tabBarH);
         CanvasSize              = UDim2.new(0,0,0,0);
-        ScrollBarThickness      = IsMobile and S(4) or 0;
+        ScrollBarThickness      = 0;
         ScrollingDirection      = Enum.ScrollingDirection.X;
         ZIndex                  = 1;
         Parent                  = ModalScrollInner;
@@ -3126,8 +3091,8 @@ function Library:CreateWindow(...)
         local Tab = { Groupboxes={}; Tabboxes={} }
         local tabDisplayName = tostring(Name or "")
 
-        local tabFontSz = IsMobile and S(12) or S(13)
-        local tbW = Library:GetTextBounds(tabDisplayName, Library.Font, tabFontSz) + S(IsMobile and 22 or 18)
+        local tabFontSz = S(13)
+        local tbW = Library:GetTextBounds(tabDisplayName, Library.Font, tabFontSz) + S(18)
         local TBtn = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderColor3=Library.OutlineColor; Size=UDim2.new(0,tbW,1,0); ZIndex=1; Parent=TabArea })
         Library:AddToRegistry(TBtn, { BackgroundColor3='BackgroundColor'; BorderColor3='OutlineColor' })
         local TBtnLabel = Library:CreateLabel({ Size=UDim2.new(1,0,1,-1); TextSize=tabFontSz; Text=tabDisplayName; PreserveCase=true; ZIndex=3; Parent=TBtn })
@@ -3141,17 +3106,6 @@ function Library:CreateWindow(...)
         Tab.Seq = Window.__tabSeq
         table.insert(Library.TabResizeCallbacks, function()
             if not TBtn.Parent then return end
-            if IsMobile then
-                TBtn.Size = UDim2.new(0, tbW, 1, 0)
-                local content = TAB_OUTER * 2
-                for _, child in ipairs(TabArea:GetChildren()) do
-                    if child:IsA('Frame') and child.Visible then
-                        content = content + child.Size.X.Offset + S(Config.TabPadding or 8)
-                    end
-                end
-                TabArea.CanvasSize = UDim2.fromOffset(content, 0)
-                return
-            end
             -- Tabs fill the whole row, each taking a share of the width
             -- proportional to its own text width. Text size never shrinks.
             local total, sumW, cumBefore = 0, 0, 0
@@ -3187,15 +3141,15 @@ function Library:CreateWindow(...)
             local sf = Library:Create('ScrollingFrame', {
                 BackgroundTransparency  = 1;
                 BorderSizePixel         = 0;
-                Position                = IsMobile and UDim2.new(0, 0, 0, 0) or UDim2.new(xScale, xOffset, 0, S(7));
-                Size                    = IsMobile and UDim2.new(1, 0, 1, 0) or UDim2.new(0.5, -S(14), 1, -S(7));
+                Position                = UDim2.new(xScale, xOffset, 0, S(7));
+                Size                    = UDim2.new(0.5, -S(14), 1, -S(7));
                 CanvasSize              = UDim2.new(0,0,0,0);
                 BottomImage             = '';
                 TopImage                = '';
-                ScrollBarThickness      = IsMobile and S(5) or 0;
+                ScrollBarThickness      = 0;
                 ScrollBarImageColor3    = Library.AccentColor;
                 ScrollingDirection      = Enum.ScrollingDirection.Y;
-                ElasticBehavior         = IsMobile and Enum.ElasticBehavior.WhenScrollable or Enum.ElasticBehavior.Never;
+                ElasticBehavior         = Enum.ElasticBehavior.Never;
                 ZIndex                  = 2;
                 Parent                  = parent;
             })
@@ -3207,31 +3161,8 @@ function Library:CreateWindow(...)
             return sf
         end
         local LeftSide, RightSide
-        if IsMobile then
-            local vp = workspace.CurrentCamera.ViewportSize
-            local pageW = vp.X - S(14)
-            local hScroll = Library:Create('ScrollingFrame', {
-                BackgroundTransparency  = 1;
-                BorderSizePixel         = 0;
-                Position                = UDim2.new(0, S(7), 0, S(7));
-                Size                    = UDim2.new(1, -S(14), 1, -S(7));
-                CanvasSize              = UDim2.fromOffset(pageW * 2, 0);
-                BottomImage             = '';
-                TopImage                = '';
-                ScrollBarThickness      = 0;
-                ScrollingDirection      = Enum.ScrollingDirection.X;
-                ElasticBehavior         = Enum.ElasticBehavior.WhenScrollable;
-                ZIndex                  = 2;
-                Parent                  = TFrame;
-            })
-            local leftPage = Library:Create('Frame', { BackgroundTransparency=1; Size=UDim2.new(0, pageW, 1, 0); Position=UDim2.fromOffset(0,0); ZIndex=2; Parent=hScroll })
-            local rightPage = Library:Create('Frame', { BackgroundTransparency=1; Size=UDim2.new(0, pageW, 1, 0); Position=UDim2.fromOffset(pageW, 0); ZIndex=2; Parent=hScroll })
-            LeftSide  = MakeSide(leftPage,  0, 0)
-            RightSide = MakeSide(rightPage, 0, 0)
-        else
-            LeftSide  = MakeSide(TFrame, 0,   S(7))
-            RightSide = MakeSide(TFrame, 0.5, S(7))
-        end
+        LeftSide  = MakeSide(TFrame, 0,   S(7))
+        RightSide = MakeSide(TFrame, 0.5, S(7))
 
         function Tab:ShowTab()
             for _, t in next, Window.Tabs do t:HideTab() end
@@ -3462,7 +3393,7 @@ function Library:CreateWindow(...)
                 BorderSizePixel         = 0;
                 Size                    = UDim2.new(1,0,0,S(28));
                 CanvasSize              = UDim2.new(0,0,0,0);
-                ScrollBarThickness      = IsMobile and S(4) or 0;
+                ScrollBarThickness      = 0;
                 ScrollingDirection      = Enum.ScrollingDirection.X;
                 ZIndex                  = 3;
                 Parent                  = TFrame;
@@ -3491,10 +3422,10 @@ function Library:CreateWindow(...)
                     CanvasSize              = UDim2.new(0,0,0,0);
                     BottomImage             = '';
                     TopImage                = '';
-                    ScrollBarThickness      = IsMobile and S(5) or 2;
+                    ScrollBarThickness      = 2;
                     ScrollBarImageColor3    = Library.AccentColor;
                     ScrollingDirection      = Enum.ScrollingDirection.Y;
-                    ElasticBehavior         = IsMobile and Enum.ElasticBehavior.WhenScrollable or Enum.ElasticBehavior.Never;
+                    ElasticBehavior         = Enum.ElasticBehavior.Never;
                     ZIndex                  = 2;
                     Visible                 = false;
                     Parent                  = TFrame;
@@ -3515,8 +3446,8 @@ function Library:CreateWindow(...)
                 local ST = { Groupboxes={}; Tabboxes={} }
                 local subDisplayName = tostring(SubName or "")
 
-                local stFontSz = IsMobile and S(12) or S(13)
-                local stW = Library:GetTextBounds(subDisplayName, Library.Font, stFontSz) + S(IsMobile and 22 or 18)
+                local stFontSz = S(13)
+                local stW = Library:GetTextBounds(subDisplayName, Library.Font, stFontSz) + S(18)
                 local STBtn = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderColor3=Library.OutlineColor; BorderSizePixel=1; Size=UDim2.new(0,stW,1,0); ZIndex=4; Parent=SubArea })
                 Library:AddToRegistry(STBtn, { BackgroundColor3='BackgroundColor'; BorderColor3='OutlineColor' })
                 local STBtnLabel = Library:CreateLabel({ Size=UDim2.new(1,0,1,-1); TextSize=stFontSz; Text=subDisplayName; PreserveCase=true; ZIndex=5; Parent=STBtn })
@@ -3731,12 +3662,10 @@ function Library:CreateWindow(...)
         setInputSink(isVisible)
         for _, cb in ipairs(Library.VisibilityCallbacks) do pcall(cb, isVisible) end
 
-        if not IsMobile then
-            Blur.Enabled = isVisible
-        end
+        Blur.Enabled = isVisible
         OuterScale.Scale = Library.UIScaleValue or 1
 
-        if not IsMobile then
+        do
             if isVisible then
                 if not Library.cursorLoopActive then
                     Library.cursorLoopActive = true
@@ -3789,18 +3718,18 @@ function Library:CreateWindow(...)
         for _, cb in ipairs(self.IconSizeCallbacks) do pcall(cb, size) end
     end
 
-    if IsMobile then
+    if IsTouch then
         local mobLogo = Library:Create('ImageButton', {
             BackgroundColor3  = Color3.fromRGB(0, 0, 0);
             BorderSizePixel   = 0;
-            Position          = UDim2.new(0.5, -S(27), 0, S(12));
-            Size              = UDim2.fromOffset(S(54), S(54));
+            Position          = UDim2.new(0.5, -S(18), 0, S(12));
+            Size              = UDim2.fromOffset(S(36), S(36));
             Image             = 'https://ez-ez.vercel.app/big_logo.png';
             ScaleType         = Enum.ScaleType.Fit;
             ZIndex            = 260;
             Parent            = ScreenGui;
         })
-        Library:Create('UICorner', { CornerRadius=UDim.new(0, S(10)); Parent=mobLogo })
+        Library:Create('UICorner', { CornerRadius=UDim.new(0, S(8)); Parent=mobLogo })
         task.spawn(function()
             local assetPath = 'Elite Zone/Rivals/Assets/big_logo.png'
             pcall(function()
@@ -3866,7 +3795,7 @@ function Library:CreateWindow(...)
     end
 
     Library:GiveSignal(Services.UserInputService.InputBegan:Connect(function(Input, Processed)
-        if IsMobile then return end
+        if IsTouch then return end
         if type(Library.ToggleKeybind) == 'table' and Library.ToggleKeybind.Type == 'KeyPicker' then
             if Input.UserInputType == Enum.UserInputType.Keyboard and Input.KeyCode.Name == Library.ToggleKeybind.Value then
                 task.spawn(Library.Toggle)
