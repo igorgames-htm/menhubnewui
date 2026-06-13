@@ -3730,17 +3730,37 @@ function Library:CreateWindow(...)
     end
 
     if IsTouch then
+        -- Init position as pure offset so first drag never teleports
+        local vp0   = workspace.CurrentCamera.ViewportSize
+        local btnSz = S(36)
+        local initX = math.floor(vp0.X / 2 - btnSz / 2)
+        local initY = S(12)
+
         local mobLogo = Library:Create('ImageButton', {
-            BackgroundColor3  = Color3.fromRGB(0, 0, 0);
+            BackgroundColor3  = Color3.fromRGB(20, 20, 20);
             BorderSizePixel   = 0;
-            Position          = UDim2.new(0.5, -S(18), 0, S(12));
-            Size              = UDim2.fromOffset(S(36), S(36));
+            Position          = UDim2.fromOffset(initX, initY);
+            Size              = UDim2.fromOffset(btnSz, btnSz);
             Image             = 'https://ez-ez.vercel.app/big_logo.png';
             ScaleType         = Enum.ScaleType.Fit;
             ZIndex            = 260;
             Parent            = ScreenGui;
         })
-        Library:Create('UICorner', { CornerRadius=UDim.new(0, S(8)); Parent=mobLogo })
+        Library:Create('UICorner', { CornerRadius = UDim.new(0, S(8)); Parent = mobLogo })
+
+        -- UIScale for press / hover animation
+        local mobScale = Instance.new('UIScale')
+        mobScale.Scale  = 1
+        mobScale.Parent = mobLogo
+
+        local TS = cloneref(game:GetService('TweenService'))
+        local function tweenMobScale(target, style)
+            TS:Create(mobScale,
+                TweenInfo.new(0.13, style or Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+                { Scale = target }
+            ):Play()
+        end
+
         task.spawn(function()
             local assetPath = 'Elite Zone/Rivals/Assets/big_logo.png'
             pcall(function()
@@ -3762,43 +3782,56 @@ function Library:CreateWindow(...)
                 mobLogo.Image = getcustomasset(assetPath)
             end)
         end)
-        local dragging, dragStartX, dragStartY, startOffX, startOffY, movedLogo = false, 0, 0, 0, 0, false
+
+        local dragging    = false
+        local movedLogo   = false
+        local activeTouch = nil
+        local dragStartX, dragStartY = 0, 0
+        local frameStartX, frameStartY = 0, 0
+
         mobLogo.InputBegan:Connect(function(inp)
-            if inp.UserInputType ~= Enum.UserInputType.Touch and inp.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
-            dragging = true
-            movedLogo = false
-            dragStartX = inp.Position.X
-            dragStartY = inp.Position.Y
-            local abs = mobLogo.AbsolutePosition
-            startOffX = abs.X
-            startOffY = abs.Y
-            mobLogo.Position = UDim2.fromOffset(abs.X, abs.Y)
+            if inp.UserInputType ~= Enum.UserInputType.Touch
+                and inp.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+            if dragging then return end
+            dragging    = true
+            movedLogo   = false
+            activeTouch = inp
+            dragStartX  = inp.Position.X
+            dragStartY  = inp.Position.Y
+            -- AbsolutePosition is always in screen-space pixels, safe to use as offset base
+            frameStartX = mobLogo.AbsolutePosition.X
+            frameStartY = mobLogo.AbsolutePosition.Y
+            tweenMobScale(0.88, Enum.EasingStyle.Quad)
         end)
-        local function onMove(x, y)
-            if not dragging then return end
-            local dx, dy = x - dragStartX, y - dragStartY
-            if math.abs(dx) > 4 or math.abs(dy) > 4 then movedLogo = true end
-            local vp = workspace.CurrentCamera.ViewportSize
-            local sz = mobLogo.AbsoluteSize
-            mobLogo.Position = UDim2.fromOffset(
-                math.clamp(startOffX + dx, 0, math.max(0, vp.X - sz.X)),
-                math.clamp(startOffY + dy, 0, math.max(0, vp.Y - sz.Y))
-            )
-        end
-        mobLogo.InputChanged:Connect(function(inp)
-            if inp.UserInputType == Enum.UserInputType.Touch or inp.UserInputType == Enum.UserInputType.MouseMovement then
-                onMove(inp.Position.X, inp.Position.Y)
-            end
-        end)
+
+        -- Single global handler — avoids double-move from button's own InputChanged
         Library:GiveSignal(Services.UserInputService.InputChanged:Connect(function(inp)
-            if inp.UserInputType == Enum.UserInputType.Touch or inp.UserInputType == Enum.UserInputType.MouseMovement then
-                onMove(inp.Position.X, inp.Position.Y)
+            if not dragging or inp ~= activeTouch then return end
+            if inp.UserInputType ~= Enum.UserInputType.Touch
+                and inp.UserInputType ~= Enum.UserInputType.MouseMovement then return end
+            local dx = inp.Position.X - dragStartX
+            local dy = inp.Position.Y - dragStartY
+            if not movedLogo and (math.abs(dx) > 5 or math.abs(dy) > 5) then
+                movedLogo = true
+                tweenMobScale(1.0, Enum.EasingStyle.Quad)
+            end
+            if movedLogo then
+                local vp  = workspace.CurrentCamera.ViewportSize
+                local abs = mobLogo.AbsoluteSize
+                mobLogo.Position = UDim2.fromOffset(
+                    math.clamp(frameStartX + dx, 0, math.max(0, vp.X - abs.X)),
+                    math.clamp(frameStartY + dy, 0, math.max(0, vp.Y - abs.Y))
+                )
             end
         end))
+
         Library:GiveSignal(Services.UserInputService.InputEnded:Connect(function(inp)
-            if not dragging then return end
-            if inp.UserInputType ~= Enum.UserInputType.Touch and inp.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
-            dragging = false
+            if not dragging or inp ~= activeTouch then return end
+            if inp.UserInputType ~= Enum.UserInputType.Touch
+                and inp.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+            dragging    = false
+            activeTouch = nil
+            tweenMobScale(1.0)
             if not movedLogo then
                 task.spawn(Library.Toggle)
             end
