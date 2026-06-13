@@ -3510,7 +3510,7 @@ function Library:CreateWindow(...)
 
                 local stFontSz = IsMobile and S(12) or S(13)
                 local stW = Library:GetTextBounds(subDisplayName, Library.Font, stFontSz) + S(IsMobile and 22 or 18)
-                local STBtn = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderColor3=Library.OutlineColor; Size=UDim2.new(0,stW,1,0); ZIndex=4; Parent=SubArea })
+                local STBtn = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderColor3=Library.OutlineColor; BorderSizePixel=1; Size=UDim2.new(0,stW,1,0); ZIndex=4; Parent=SubArea })
                 Library:AddToRegistry(STBtn, { BackgroundColor3='BackgroundColor'; BorderColor3='OutlineColor' })
                 local STBtnLabel = Library:CreateLabel({ Size=UDim2.new(1,0,1,-1); TextSize=stFontSz; Text=subDisplayName; PreserveCase=true; ZIndex=5; Parent=STBtn })
                 Library:RemoveFromRegistry(STBtnLabel)
