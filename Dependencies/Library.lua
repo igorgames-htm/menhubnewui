@@ -2340,10 +2340,11 @@ do
         local function UpdateListPos()
             if not DropdownOuter.Parent then return end
             local scale = Library.UIScaleValue or 1.0
-            local ap = DropdownOuter.AbsolutePosition
-            local aw = DropdownOuter.AbsoluteSize.X
-            ListOuter.Position = UDim2.fromOffset(ap.X / scale, (ap.Y + ddH + S(2)) / scale)
-            ListOuter.Size     = UDim2.fromOffset(aw / scale,   ListOuter.Size.Y.Offset)
+            local ap  = DropdownOuter.AbsolutePosition
+            local asz = DropdownOuter.AbsoluteSize
+            -- Always place directly below the dropdown using its real absolute height.
+            ListOuter.Position = UDim2.fromOffset(ap.X / scale, (ap.Y + asz.Y + 1) / scale)
+            ListOuter.Size     = UDim2.fromOffset(asz.X / scale, ListOuter.Size.Y.Offset)
         end
         DropdownOuter:GetPropertyChangedSignal('AbsolutePosition'):Connect(UpdateListPos)
         DropdownOuter:GetPropertyChangedSignal('AbsoluteSize'):Connect(UpdateListPos)
@@ -2412,7 +2413,7 @@ do
             Scroll.CanvasSize = UDim2.new(0, 0, 0, count * itemH + 1)
         end
 
-        function DropdownData:OpenDropdown()  ListOuter.Visible = true;  Library.OpenedFrames[ListOuter] = true;  Arrow.Rotation = 90 end
+        function DropdownData:OpenDropdown()  UpdateListPos(); ListOuter.Visible = true;  Library.OpenedFrames[ListOuter] = true;  Arrow.Rotation = 90 end
         function DropdownData:CloseDropdown() ListOuter.Visible = false; Library.OpenedFrames[ListOuter] = nil;   Arrow.Rotation = 0  end
         function DropdownData:OnChanged(fn)   DropdownData.Changed = fn; fn(DropdownData.Value) end
         function DropdownData:SetValue(val)
