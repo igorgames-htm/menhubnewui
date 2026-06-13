@@ -1083,8 +1083,30 @@ do
         Library:AddToRegistry(PickerFrameInner, { BackgroundColor3 = 'BackgroundColor'; BorderColor3 = 'OutlineColor' })
 
         local function UpdatePickerPos()
-            local scale = Library.UIScaleValue or 1.0
-            PickerFrameOuter.Position = UDim2.fromOffset(Swatch.AbsolutePosition.X / scale, (Swatch.AbsolutePosition.Y + DispH + S(2)) / scale)
+            local sap = Swatch.AbsolutePosition
+            PickerFrameOuter.Position = UDim2.fromOffset(sap.X, sap.Y + Swatch.AbsoluteSize.Y + 1)
+        end
+        -- Measure where it actually landed and pin it under the swatch (UIScale-proof).
+        local pickerCorrecting = false
+        local function StartPickerCorrecting()
+            if pickerCorrecting then return end
+            pickerCorrecting = true
+            task.spawn(function()
+                while PickerFrameOuter.Visible do
+                    local sap, sas = Swatch.AbsolutePosition, Swatch.AbsoluteSize
+                    local cur = PickerFrameOuter.AbsolutePosition
+                    local ex  = sap.X - cur.X
+                    local ey  = (sap.Y + sas.Y + 1) - cur.Y
+                    if math.abs(ex) > 0.5 or math.abs(ey) > 0.5 then
+                        PickerFrameOuter.Position = UDim2.fromOffset(
+                            PickerFrameOuter.Position.X.Offset + ex,
+                            PickerFrameOuter.Position.Y.Offset + ey
+                        )
+                    end
+                    Services.RunService.Heartbeat:Wait()
+                end
+                pickerCorrecting = false
+            end)
         end
         Swatch:GetPropertyChangedSignal('AbsolutePosition'):Connect(UpdatePickerPos)
         UpdatePickerPos()
@@ -1149,6 +1171,7 @@ do
             UpdatePickerPos()
             Blocker.Visible = true
             PickerFrameOuter.Visible = true
+            StartPickerCorrecting()
             Library.OpenedFrames[PickerFrameOuter] = true
             Library.OpenedFrames[Blocker] = true
         end
@@ -1296,11 +1319,15 @@ do
         Library:Create('ImageLabel', { BorderSizePixel=0; Size=UDim2.new(0,swW-1,0,swH-1); ZIndex=14; Image='rbxassetid://12977615774'; Parent=Swatch })
         local SwatchGrad = Library:Create('UIGradient', { Parent=Swatch })
 
-        local stripW  = S(56)
-        local off     = stripW + S(4)
-        local pickerW = off + S(230)
-        local pickerH = (Info.Transparency ~= nil) and S(271) or S(253)
+        local pickerW = S(230)
         local mapSz   = S(200)
+        -- vertical layout anchors (top -> bottom): preview bar, stop tabs, map+hue, inputs, transparency
+        local prevY   = S(22)
+        local tabsY   = S(44)
+        local mapY    = S(70)
+        local inputsY = mapY + mapSz + S(6)
+        local transY  = inputsY + S(23)
+        local pickerH = (Info.Transparency ~= nil) and (transY + S(18)) or (inputsY + S(24))
 
         local Blocker = Library:Create('Frame', { Name='GradColorBlocker'; Active=true; BackgroundTransparency=1; Position=UDim2.fromOffset(0,0); Size=UDim2.fromScale(1,1); Visible=false; ZIndex=205; Parent=ScreenGui })
 
@@ -1311,8 +1338,31 @@ do
         Library:AddToRegistry(PickerFrameInner, { BackgroundColor3='BackgroundColor'; BorderColor3='OutlineColor' })
 
         local function UpdatePickerPos()
-            local scale = Library.UIScaleValue or 1.0
-            PickerFrameOuter.Position = UDim2.fromOffset(Swatch.AbsolutePosition.X / scale, (Swatch.AbsolutePosition.Y + swH + S(2)) / scale)
+            local sap = Swatch.AbsolutePosition
+            PickerFrameOuter.Position = UDim2.fromOffset(sap.X, sap.Y + Swatch.AbsoluteSize.Y + 1)
+        end
+        -- Bulletproof: measure where the picker actually rendered and nudge until its top-left
+        -- sits exactly under the swatch (the UIScale otherwise shifts it off, worse when tall).
+        local pickerCorrecting = false
+        local function StartPickerCorrecting()
+            if pickerCorrecting then return end
+            pickerCorrecting = true
+            task.spawn(function()
+                while PickerFrameOuter.Visible do
+                    local sap, sas = Swatch.AbsolutePosition, Swatch.AbsoluteSize
+                    local cur = PickerFrameOuter.AbsolutePosition
+                    local ex  = sap.X - cur.X
+                    local ey  = (sap.Y + sas.Y + 1) - cur.Y
+                    if math.abs(ex) > 0.5 or math.abs(ey) > 0.5 then
+                        PickerFrameOuter.Position = UDim2.fromOffset(
+                            PickerFrameOuter.Position.X.Offset + ex,
+                            PickerFrameOuter.Position.Y.Offset + ey
+                        )
+                    end
+                    Services.RunService.Heartbeat:Wait()
+                end
+                pickerCorrecting = false
+            end)
         end
         Swatch:GetPropertyChangedSignal('AbsolutePosition'):Connect(UpdatePickerPos)
         UpdatePickerPos()
@@ -1322,63 +1372,34 @@ do
 
         local TitleLabel = Library:CreateLabel({ Size=UDim2.new(1,0,0,S(14)); Position=UDim2.fromOffset(S(5),S(4)); TextSize=S(13); Text=GradColorPickerInfo.Title..' (start)'; TextXAlignment=Enum.TextXAlignment.Left; TextWrapped=false; ZIndex=17; Parent=PickerFrameInner })
 
-        local StopLabels  = { "start", "middle", "end" }
-        local stopYs      = { S(34), S(100), S(166) }
-        local swatchSz    = S(20)
-        local stopFrames  = {}
+        -- Live gradient preview bar (checkerboard shows through transparent stops).
+        local PreviewOuter = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Position=UDim2.fromOffset(S(4),prevY); Size=UDim2.new(1,-S(8),0,S(18)); ZIndex=17; Parent=PickerFrameInner })
+        local PreviewInner = Library:Create('Frame', { BackgroundColor3=Library.OutlineColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; BorderSizePixel=1; Size=UDim2.new(1,0,1,0); ZIndex=17; Parent=PreviewOuter })
+        Library:AddToRegistry(PreviewInner, { BackgroundColor3='OutlineColor'; BorderColor3='OutlineColor' })
+        Library:Create('ImageLabel', { BackgroundTransparency=1; BorderSizePixel=0; Size=UDim2.new(1,0,1,0); ZIndex=18; Image='rbxassetid://12977615774'; Parent=PreviewInner })
+        local PreviewFill = Library:Create('Frame', { BackgroundColor3=Color3.new(1,1,1); BorderSizePixel=0; Size=UDim2.new(1,0,1,0); ZIndex=19; Parent=PreviewInner })
+        local PreviewGrad = Library:Create('UIGradient', { Parent=PreviewFill })
+
+        -- Horizontal stop selector: start | middle | end. Active stop = accent border + text.
+        local STOP_TAB_NAMES = { 'Start', 'Middle', 'End' }
+        local tabGap   = S(3)
+        local tabW     = math.floor((pickerW - S(8) - tabGap * 2) / 3)
+        local stopFrames = {}
         for i = 1, 3 do
-            local entryY = stopYs[i]
-            Library:CreateLabel({
-                Position        = UDim2.fromOffset(S(2), entryY - S(12));
-                Size            = UDim2.fromOffset(stripW - S(4), S(11));
-                TextSize        = S(10);
-                Text            = StopLabels[i];
-                TextXAlignment  = Enum.TextXAlignment.Center;
-                TextWrapped     = false;
-                ZIndex          = 18;
-                Parent          = PickerFrameInner;
-            })
-            local swatchZ = 17
-            local sfOuter = Library:Create('Frame', {
-                BackgroundColor3  = Library.BackgroundColor;
-                BorderColor3      = (i == 1) and Library.AccentColor or Library.OutlineColor;
-                BorderMode        = Enum.BorderMode.Inset;
-                BorderSizePixel   = 1;
-                Position          = UDim2.fromOffset(math.floor((stripW - swatchSz) / 2), entryY);
-                Size              = UDim2.fromOffset(swatchSz, swatchSz);
-                ZIndex            = swatchZ; Parent = PickerFrameInner;
-            })
-            Library:AddToRegistry(sfOuter, { BackgroundColor3 = 'BackgroundColor'; BorderColor3 = 'OutlineColor' })
-            Library:Create('ImageLabel', {
-                BackgroundTransparency  = 1;
-                BorderSizePixel         = 0;
-                Position                = UDim2.new(0, 0, 0, 0);
-                Size                    = UDim2.new(1, 0, 1, 0);
-                ZIndex                  = swatchZ + 1;
-                Image                   = 'rbxassetid://12977615774';
-                Parent                  = sfOuter;
-            })
-            local sfColor = Library:Create('Frame', {
-                Active                  = true;
-                BackgroundColor3        = GradColorPickerInfo.Values[i];
-                BackgroundTransparency  = GradColorPickerInfo.Transparencies[i];
-                BorderSizePixel         = 0;
-                Position                = UDim2.new(0, 0, 0, 0);
-                Size                    = UDim2.new(1, 0, 1, 0);
-                ZIndex                  = swatchZ + 2;
-                Parent                  = sfOuter;
-            })
-            stopFrames[i] = { frame = sfColor, outer = sfOuter }
+            local tabX = S(4) + (i - 1) * (tabW + tabGap)
+            local tabOuter = Library:Create('Frame', { Active=true; BackgroundColor3=Library.MainColor; BorderColor3=(i==1) and Library.AccentColor or Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; BorderSizePixel=1; Position=UDim2.fromOffset(tabX,tabsY); Size=UDim2.fromOffset(tabW,S(20)); ZIndex=17; Parent=PickerFrameInner })
+            Library:AddToRegistry(tabOuter, { BackgroundColor3='MainColor'; BorderColor3='OutlineColor' })
+            local chipOuter = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); BorderSizePixel=1; Position=UDim2.fromOffset(S(3),S(3)); Size=UDim2.fromOffset(S(12),S(12)); ZIndex=18; Parent=tabOuter })
+            Library:Create('ImageLabel', { BackgroundTransparency=1; BorderSizePixel=0; Size=UDim2.new(1,0,1,0); ZIndex=18; Image='rbxassetid://12977615774'; Parent=chipOuter })
+            local chip = Library:Create('Frame', { Active=true; BackgroundColor3=GradColorPickerInfo.Values[i]; BackgroundTransparency=GradColorPickerInfo.Transparencies[i]; BorderSizePixel=0; Size=UDim2.new(1,0,1,0); ZIndex=19; Parent=chipOuter })
+            local nameLbl = Library:CreateLabel({ PreserveCase=true; BackgroundTransparency=1; Position=UDim2.fromOffset(S(19),0); Size=UDim2.new(1,-S(21),1,0); TextSize=S(11); Text=STOP_TAB_NAMES[i]; TextXAlignment=Enum.TextXAlignment.Left; ZIndex=18; Parent=tabOuter })
+            stopFrames[i] = { frame = chip, outer = tabOuter, label = nameLbl }
             local idx = i
-            sfOuter.MouseEnter:Connect(function()
-                sfOuter.BorderColor3 = Library.AccentColor
-            end)
-            sfOuter.MouseLeave:Connect(function()
-                sfOuter.BorderColor3 = (GradColorPickerInfo.ActiveStop == idx) and Library.AccentColor or Library.OutlineColor
-            end)
+            tabOuter.MouseEnter:Connect(function() tabOuter.BorderColor3 = Library.AccentColor end)
+            tabOuter.MouseLeave:Connect(function() tabOuter.BorderColor3 = (GradColorPickerInfo.ActiveStop == idx) and Library.AccentColor or Library.OutlineColor end)
         end
 
-        local SatValOuter = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Position=UDim2.fromOffset(off+S(4),S(24)); Size=UDim2.fromOffset(mapSz,mapSz); ZIndex=17; Parent=PickerFrameInner })
+        local SatValOuter = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Position=UDim2.fromOffset(S(4),mapY); Size=UDim2.fromOffset(mapSz,mapSz); ZIndex=17; Parent=PickerFrameInner })
         local SatValInner = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,1,0); ZIndex=18; Parent=SatValOuter })
         local SatValMap   = Library:Create('ImageLabel', { BorderSizePixel=0; Size=UDim2.new(1,0,1,0); ZIndex=18; Image='rbxassetid://4155801252'; Parent=SatValInner })
         Library:AddToRegistry(SatValInner, { BackgroundColor3='BackgroundColor'; BorderColor3='OutlineColor' })
@@ -1386,21 +1407,20 @@ do
         local CursorOuter = Library:Create('ImageLabel', { AnchorPoint=Vector2.new(0.5,0.5); Size=UDim2.fromOffset(S(6),S(6)); BackgroundTransparency=1; Image='rbxassetid://9619665977'; ImageColor3=Color3.new(0,0,0); ZIndex=19; Parent=SatValMap })
         Library:Create('ImageLabel', { Size=UDim2.fromOffset(S(4),S(4)); Position=UDim2.fromOffset(1,1); BackgroundTransparency=1; Image='rbxassetid://9619665977'; ZIndex=20; Parent=CursorOuter })
 
-        local HueOuter = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Position=UDim2.fromOffset(off+S(208),S(24)); Size=UDim2.fromOffset(S(15),mapSz); ZIndex=17; Parent=PickerFrameInner })
+        local HueOuter = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Position=UDim2.fromOffset(S(208),mapY); Size=UDim2.fromOffset(S(15),mapSz); ZIndex=17; Parent=PickerFrameInner })
         local HueInner = Library:Create('Frame', { BackgroundColor3=Color3.new(1,1,1); BorderSizePixel=0; Size=UDim2.new(1,0,1,0); ZIndex=18; Parent=HueOuter })
         local hueSKP  = {}
         for i = 0, 1, 0.1 do table.insert(hueSKP, ColorSequenceKeypoint.new(math.min(i,1), Color3.fromHSV(i,1,1))) end
         Library:Create('UIGradient', { Color=ColorSequence.new(hueSKP); Rotation=90; Parent=HueInner })
 
-        local inputW   = S(107)
-        local HexInputOuter = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Position=UDim2.fromOffset(off+S(4),S(228)); Size=UDim2.fromOffset(inputW,S(20)); ZIndex=18; Parent=PickerFrameInner })
+        local HexInputOuter = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Position=UDim2.new(0,S(4),0,inputsY); Size=UDim2.new(0.5,-S(6),0,S(20)); ZIndex=18; Parent=PickerFrameInner })
         local HexInputInner = Library:Create('Frame', { BackgroundColor3=Library.MainColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,1,0); ZIndex=18; Parent=HexInputOuter })
         Library:Create('UIGradient', { Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.new(1,1,1)),ColorSequenceKeypoint.new(1,Color3.fromRGB(212,212,212))}); Rotation=90; Parent=HexInputInner })
         local HexInputBox = Library:Create('TextBox', { BackgroundTransparency=1; Position=UDim2.new(0,S(4),0,0); Size=UDim2.new(1,-S(4),1,0); Font=Library.Font; PlaceholderText='Hex'; PlaceholderColor3=Color3.fromRGB(190,190,190); Text='#FFFFFF'; TextColor3=Library.FontColor; TextSize=S(13); TextXAlignment=Enum.TextXAlignment.Left; ZIndex=20; Parent=HexInputInner })
         Library:AddToRegistry(HexInputInner, { BackgroundColor3='MainColor'; BorderColor3='OutlineColor' })
         Library:AddToRegistry(HexInputBox,   { TextColor3='FontColor' })
 
-        local RgbInputOuter = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Position=UDim2.fromOffset(off+S(4)+inputW+S(4),S(228)); Size=UDim2.fromOffset(inputW,S(20)); ZIndex=18; Parent=PickerFrameInner })
+        local RgbInputOuter = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Position=UDim2.new(0.5,S(2),0,inputsY); Size=UDim2.new(0.5,-S(6),0,S(20)); ZIndex=18; Parent=PickerFrameInner })
         local RgbInputInner = Library:Create('Frame', { BackgroundColor3=Library.MainColor; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,1,0); ZIndex=18; Parent=RgbInputOuter })
         Library:Create('UIGradient', { Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.new(1,1,1)),ColorSequenceKeypoint.new(1,Color3.fromRGB(212,212,212))}); Rotation=90; Parent=RgbInputInner })
         local RgbInputBox = Library:Create('TextBox', { BackgroundTransparency=1; Position=UDim2.new(0,S(4),0,0); Size=UDim2.new(1,-S(4),1,0); Font=Library.Font; PlaceholderText='R,G,B'; PlaceholderColor3=Color3.fromRGB(190,190,190); Text='255,255,255'; TextColor3=Library.FontColor; TextSize=S(13); TextXAlignment=Enum.TextXAlignment.Left; ZIndex=20; Parent=RgbInputInner })
@@ -1409,7 +1429,7 @@ do
 
         local TransparencyInner
         if Info.Transparency ~= nil then
-            local TransparencyOuter = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Position=UDim2.fromOffset(off+S(4),S(251)); Size=UDim2.fromOffset(mapSz+S(19),S(14)); ZIndex=19; Parent=PickerFrameInner })
+            local TransparencyOuter = Library:Create('Frame', { BorderColor3=Color3.new(0,0,0); Position=UDim2.new(0,S(4),0,transY); Size=UDim2.new(1,-S(8),0,S(14)); ZIndex=19; Parent=PickerFrameInner })
             TransparencyInner = Library:Create('Frame', { BackgroundColor3=GradColorPickerInfo.Values[1]; BorderColor3=Library.OutlineColor; BorderMode=Enum.BorderMode.Inset; Size=UDim2.new(1,0,1,0); ZIndex=19; Parent=TransparencyOuter })
             Library:AddToRegistry(TransparencyInner, { BorderColor3='OutlineColor' })
             Library:Create('ImageLabel', { BackgroundTransparency=1; Size=UDim2.new(1,0,1,0); Image='rbxassetid://12978095818'; ZIndex=20; Parent=TransparencyInner })
@@ -1417,24 +1437,30 @@ do
 
         local function RefreshStopSwatches()
             for i = 1, 3 do
-                local sf = stopFrames[i]
+                local sf     = stopFrames[i]
+                local active = (i == GradColorPickerInfo.ActiveStop)
                 sf.frame.BackgroundColor3       = GradColorPickerInfo.Values[i]
                 sf.frame.BackgroundTransparency = GradColorPickerInfo.Transparencies[i]
-                sf.outer.BorderColor3           = (i == GradColorPickerInfo.ActiveStop) and Library.AccentColor or Library.OutlineColor
+                sf.outer.BorderColor3           = active and Library.AccentColor or Library.OutlineColor
+                if sf.label then sf.label.TextColor3 = active and Library.AccentColor or Library.FontColor end
             end
         end
 
         local function RefreshSwatch()
-            SwatchGrad.Color = ColorSequence.new({
+            local cseq = ColorSequence.new({
                 ColorSequenceKeypoint.new(0,   GradColorPickerInfo.Values[1]),
                 ColorSequenceKeypoint.new(0.5, GradColorPickerInfo.Values[2]),
                 ColorSequenceKeypoint.new(1,   GradColorPickerInfo.Values[3]),
             })
-            SwatchGrad.Transparency = NumberSequence.new({
+            local tseq = NumberSequence.new({
                 NumberSequenceKeypoint.new(0,   GradColorPickerInfo.Transparencies[1]),
                 NumberSequenceKeypoint.new(0.5, GradColorPickerInfo.Transparencies[2]),
                 NumberSequenceKeypoint.new(1,   GradColorPickerInfo.Transparencies[3]),
             })
+            SwatchGrad.Color        = cseq
+            SwatchGrad.Transparency = tseq
+            PreviewGrad.Color       = cseq
+            PreviewGrad.Transparency = tseq
         end
 
         function GradColorPickerInfo:Display()
@@ -1465,6 +1491,7 @@ do
             UpdatePickerPos()
             Blocker.Visible = true
             PickerFrameOuter.Visible = true
+            StartPickerCorrecting()
             Library.OpenedFrames[PickerFrameOuter] = true
             Library.OpenedFrames[Blocker] = true
         end
@@ -2233,7 +2260,7 @@ do
         local function StartLerp()
             if LerpConn then return end
             LerpConn = Services.RunService.RenderStepped:Connect(function(dt)
-                CurX = CurX + (TargetX - CurX) * math.clamp(dt * 18, 0, 1)
+                CurX = CurX + (TargetX - CurX) * math.clamp(dt * 12, 0, 1)
                 if math.abs(TargetX - CurX) <= 0.5 then CurX = TargetX; ApplyFill(CurX); StopLerp(); return end
                 ApplyFill(CurX)
             end)
@@ -2384,6 +2411,7 @@ do
             else
                 s = DropdownData.Value and Library:TranslateString(DropdownData.Value) or ''
             end
+            if #s > 30 then s = s:sub(1, 30) .. '...' end
             if s == '' then s = '...' end
             if ItemLabel and ItemLabel.Parent then ItemLabel.Text = s end
         end
@@ -2423,7 +2451,6 @@ do
                             for _, b in ipairs(Buttons) do b() end
                         end
                         UpdateBtn(); DropdownData:Display()
-                        if not Info.Multi then DropdownData:CloseDropdown() end
                         Library:SafeCallback(DropdownData.Callback, DropdownData.Value)
                         Library:SafeCallback(DropdownData.Changed,  DropdownData.Value)
                         Library:AttemptSave()
@@ -2468,12 +2495,17 @@ do
         end)
         Library:GiveSignal(Services.UserInputService.InputBegan:Connect(function(Input)
             if not Library:IsPointerInput(Input) then return end
-            if ListOuter.Visible and ddCloseBlock > os.clock() then return end
-            local pos = Input.Position
-            local px = pos.X
-            local py = pos.Y
-            local ap, as = ListOuter.AbsolutePosition, ListOuter.AbsoluteSize
-            if px < ap.X or px > ap.X+as.X or py < ap.Y-ddH-1 or py > ap.Y+as.Y then DropdownData:CloseDropdown() end
+            if not ListOuter.Visible then return end
+            if ddCloseBlock > os.clock() then return end
+            local px, py   = Input.Position.X, Input.Position.Y
+            local lap, las = ListOuter.AbsolutePosition, ListOuter.AbsoluteSize
+            local dap, das = DropdownOuter.AbsolutePosition, DropdownOuter.AbsoluteSize
+            local overList   = px >= lap.X and px <= lap.X+las.X and py >= lap.Y and py <= lap.Y+las.Y
+            local overHeader = px >= dap.X and px <= dap.X+das.X and py >= dap.Y and py <= dap.Y+das.Y
+            -- Close when clicking anything that isn't the list or its own header. Clicking the
+            -- header is handled by DropdownOuter (toggles it closed); closing here too would race
+            -- the two handlers and re-open it. Uses real rendered bounds, so it's scale-correct.
+            if not overList and not overHeader then DropdownData:CloseDropdown() end
         end))
 
         DropdownData:SetValues()
