@@ -2341,6 +2341,9 @@ do
 
         local MAX = 8
         local itemH = S(20)
+        -- Full-screen blocker behind the open list: sinks every click that isn't on the list
+        -- itself, so a click can never fall through to a dropdown (or anything) behind it.
+        local Blocker = Library:Create('Frame', { Name='DropdownBlocker'; Active=true; BackgroundTransparency=1; Position=UDim2.fromScale(0,0); Size=UDim2.fromScale(1,1); ZIndex=19; Visible=false; Parent=ScreenGui })
         local ListOuter = Library:Create('Frame', { Active=true; BorderColor3=Color3.new(0,0,0); Size=UDim2.fromOffset(200, MAX*itemH+2); ZIndex=20; Visible=false; Parent=ScreenGui })
         local ListOuterScale = Library:Create('UIScale', { Scale = Library.UIScaleValue or 1.0; Parent = ListOuter })
         table.insert(Library.ThemeScales, ListOuterScale)
@@ -2465,8 +2468,8 @@ do
             UpdateListPos()
         end
 
-        function DropdownData:OpenDropdown()  UpdateListPos(); ListOuter.Visible = true;  Library.OpenedFrames[ListOuter] = true;  Arrow.Rotation = 90; StartCorrecting() end
-        function DropdownData:CloseDropdown() ListOuter.Visible = false; Library.OpenedFrames[ListOuter] = nil;   Arrow.Rotation = 0  end
+        function DropdownData:OpenDropdown()  UpdateListPos(); Blocker.Visible = true; ListOuter.Visible = true;  Library.OpenedFrames[ListOuter] = true;  Arrow.Rotation = 90; StartCorrecting() end
+        function DropdownData:CloseDropdown() Blocker.Visible = false; ListOuter.Visible = false; Library.OpenedFrames[ListOuter] = nil;   Arrow.Rotation = 0  end
         function DropdownData:OnChanged(fn)   DropdownData.Changed = fn; fn(DropdownData.Value) end
         function DropdownData:SetValue(val)
             if DropdownData.Multi then
@@ -2482,31 +2485,21 @@ do
             Library:SafeCallback(DropdownData.Changed,  DropdownData.Value)
         end
 
-        local ddCloseBlock = 0
+        -- Header click opens the list. When the list is already open the Blocker sits over the
+        -- header (and everything else), so this only fires from the closed state.
         DropdownOuter.InputBegan:Connect(function(Input)
-            if Library:IsPointerInput(Input) and not Library:MouseIsOverOpenedFrame() then
-                if ListOuter.Visible then
-                    DropdownData:CloseDropdown()
-                else
-                    DropdownData:OpenDropdown()
-                    ddCloseBlock = os.clock() + 0.05
-                end
-            end
-        end)
-        Library:GiveSignal(Services.UserInputService.InputBegan:Connect(function(Input)
             if not Library:IsPointerInput(Input) then return end
-            if not ListOuter.Visible then return end
-            if ddCloseBlock > os.clock() then return end
-            local px, py   = Input.Position.X, Input.Position.Y
-            local lap, las = ListOuter.AbsolutePosition, ListOuter.AbsoluteSize
-            local dap, das = DropdownOuter.AbsolutePosition, DropdownOuter.AbsoluteSize
-            local overList   = px >= lap.X and px <= lap.X+las.X and py >= lap.Y and py <= lap.Y+las.Y
-            local overHeader = px >= dap.X and px <= dap.X+das.X and py >= dap.Y and py <= dap.Y+das.Y
-            -- Close when clicking anything that isn't the list or its own header. Clicking the
-            -- header is handled by DropdownOuter (toggles it closed); closing here too would race
-            -- the two handlers and re-open it. Uses real rendered bounds, so it's scale-correct.
-            if not overList and not overHeader then DropdownData:CloseDropdown() end
-        end))
+            if ListOuter.Visible then return end
+            DropdownData:OpenDropdown()
+        end)
+        -- The list (ZIndex 20+) renders above the Blocker (19), so clicking an option hits the
+        -- option, not the Blocker. Clicking ANYWHERE else hits the Blocker first: it closes the
+        -- list and, being Active and full-screen, sinks the click so it can't reach a dropdown
+        -- or control behind it. That's what stops the "other dropdown opened too" click-through.
+        Blocker.InputBegan:Connect(function(Input)
+            if not Library:IsPointerInput(Input) then return end
+            DropdownData:CloseDropdown()
+        end)
 
         DropdownData:SetValues()
 
