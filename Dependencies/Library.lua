@@ -60,9 +60,6 @@ local Library = {
 Library.Toggles = Toggles
 Library.Options = Options
 
--- Time-sliced UI construction: while Library.StreamedBuild is truthy, element
--- creation yields whenever it has consumed ~6ms of the current frame, so
--- building hundreds of elements never freezes a single frame.
 do
     local LastYield = os.clock()
     function Library:BuildTick()
@@ -77,7 +74,6 @@ end
 function Library:RegisterVisibilityCallback(fn) table.insert(self.VisibilityCallbacks, fn) end
 function Library:RegisterIconSizeCallback(fn) table.insert(self.IconSizeCallbacks, fn) end
 
--- (removed) dead rainbow RenderStepped loop: nothing consumed CurrentRainbowHue/Color.
 Library.CurrentRainbowHue   = 0
 Library.CurrentRainbowColor = Color3.fromHSV(0, 0.8, 1)
 
@@ -260,8 +256,6 @@ function Library:IsMouseOverFrame(Frame)
     return px >= ap.X and px <= ap.X + as.X and py >= ap.Y and py <= ap.Y + as.Y
 end
 
--- Coalesced: many SetValue/Add* calls per frame collapse into ONE pass over all
--- dependency boxes on the next scheduler step (was O(elements x boxes) at load).
 do
     local Pending = false
     function Library:UpdateDependencyBoxes()
@@ -282,7 +276,6 @@ function Library:MapValue(v, a0, a1, b0, b1)
 end
 
 function Library:GetTextBounds(Text, Font, Size, Res)
-    -- GetTextSize only accepts Enum.Font; if a new-style Font object was set fall back
     local ok, b = pcall(Services.TextService.GetTextSize, Services.TextService, Text, Size, Font, Res or Vector2.new(1920, 1080))
     if not ok or not b then
         local ok2, b2 = pcall(Services.TextService.GetTextSize, Services.TextService, Text, Size, Enum.Font.Code, Res or Vector2.new(1920, 1080))
@@ -751,7 +744,6 @@ do
         Library.KeybindContainer = KeybindContainer
         Library:MakeDraggableDirect(KeybindOuter)
     else
-        -- Mobile stubs so SetKeybindVisibility / HudBindLabel references don't error
         local stub = Instance.new('Frame')
         stub.Visible = false
         Library.KeybindFrame     = stub
@@ -2231,8 +2223,6 @@ do
         function Slider:GetValueFromX(x)
             return Round(Library:MapValue(math.clamp(x,0,Slider.MaxSize), 0, Slider.MaxSize, Slider.Min, Slider.Max))
         end
-        -- Smooth fill: a continuous render-loop lerp toward the target width. It runs
-        -- only while the fill is catching up, then disconnects itself (no idle cost).
         local CurX, TargetX, LerpConn = 0, 0, nil
         local function StopLerp() if LerpConn then LerpConn:Disconnect(); LerpConn = nil end end
         local function ApplyFill(px)
@@ -2317,8 +2307,6 @@ do
         Library:AddToRegistry(DropdownInner, { BackgroundColor3='MainColor'; BorderColor3='OutlineColor' })
         Library:Create('UIGradient', { Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.new(1,1,1)),ColorSequenceKeypoint.new(1,Color3.fromRGB(212,212,212))}); Rotation=90; Parent=DropdownInner })
         local Arrow = Library:CreateLabel({ PreserveCase=true; AnchorPoint=Vector2.new(0.5,0.5); BackgroundTransparency=1; Position=UDim2.new(1,-S(11),0.5,0); Size=UDim2.fromOffset(S(14),S(14)); Text='>'; TextSize=S(14); Font=Enum.Font.GothamBold; ZIndex=8; Parent=DropdownInner })
-        -- Clip frame ends before the arrow; text is hard-clipped here so it can never reach
-        -- or overlap the ">" at any UI scale (TextTruncate alone drifts under UIScale).
         local ItemClip  = Library:Create('Frame', { BackgroundTransparency=1; ClipsDescendants=true; Position=UDim2.new(0,S(4),0,0); Size=UDim2.new(1,-S(22),1,0); ZIndex=8; Parent=DropdownInner })
         local ItemLabel = Library:CreateLabel({ PreserveCase=true; Size=UDim2.new(1,0,1,0); TextSize=S(13); Text=''; TextXAlignment=Enum.TextXAlignment.Left; TextTruncate=Enum.TextTruncate.AtEnd; ZIndex=8; Parent=ItemClip })
         Library:OnHighlight(DropdownOuter, DropdownOuter, { BorderColor3='OutlineColor' }, { BorderColor3='Black' })
@@ -2345,9 +2333,6 @@ do
             local scale = Library.UIScaleValue or 1.0
             local ap  = DropdownOuter.AbsolutePosition
             local asz = DropdownOuter.AbsoluteSize
-            -- Same pattern as the color picker (UpdatePickerPos): a ScreenGui-parented frame
-            -- with a UIScale child is positioned by dividing the target absolute pixel coords
-            -- by the scale — the UIScale multiplies it back. Placed just below the dropdown.
             ListOuter.Position = UDim2.fromOffset(ap.X / scale, (ap.Y + asz.Y + 1) / scale)
             ListOuter.Size     = UDim2.fromOffset(asz.X / scale, ListOuter.Size.Y.Offset)
         end
@@ -2701,7 +2686,6 @@ function Library:CreateWindow(...)
     })
 
     local function applyHandleSize(_size)
-        -- semi-circle handle is fixed-size; no resize needed
     end
     function Window:SetIconSize(size)
         applyHandleSize(size)
@@ -3123,7 +3107,6 @@ function Library:CreateWindow(...)
         local TBtn = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderColor3=Library.OutlineColor; Size=UDim2.new(0,tbW,1,0); ZIndex=1; Parent=TabArea })
         Library:AddToRegistry(TBtn, { BackgroundColor3='BackgroundColor'; BorderColor3='OutlineColor' })
         local TBtnLabel = Library:CreateLabel({ Size=UDim2.new(1,0,1,-1); TextSize=tabFontSz; Text=tabDisplayName; PreserveCase=true; ZIndex=3; Parent=TBtn })
-        -- black outline on the inner side of the tab's OutlineColor border, only on the selected tab
         local TInline = Library:Create('Frame', { BackgroundTransparency=1; BorderColor3=Color3.new(0,0,0); BorderSizePixel=1; Size=UDim2.new(1,-2,1,-2); Position=UDim2.new(0,1,0,1); Visible=false; ZIndex=6; Parent=TBtn })
         Library:RemoveFromRegistry(TBtnLabel)
         TBtnLabel.TextColor3 = Color3.fromRGB(110,110,110)
@@ -3133,8 +3116,6 @@ function Library:CreateWindow(...)
         Tab.Seq = Window.__tabSeq
         table.insert(Library.TabResizeCallbacks, function()
             if not TBtn.Parent then return end
-            -- Tabs fill the whole row, each taking a share of the width
-            -- proportional to its own text width. Text size never shrinks.
             local total, sumW, cumBefore = 0, 0, 0
             for _, t in next, Window.Tabs do
                 total = total + 1
@@ -3148,8 +3129,6 @@ function Library:CreateWindow(...)
                 local tabAreaW = TabArea.AbsoluteSize.X - 2 * TAB_OUTER
                 if tabAreaW <= 0 then tabAreaW = curW - 34 end
                 local availW   = tabAreaW - (total - 1) * padding
-                -- Cumulative tiling: each tab fills up to its boundary so the row
-                -- has no leftover gap (the last tab reaches the right edge exactly).
                 local left     = math.floor(cumBefore / sumW * availW)
                 local right    = math.floor((cumBefore + tbW) / sumW * availW)
                 local myW      = math.max(10, right - left)
@@ -3480,7 +3459,6 @@ function Library:CreateWindow(...)
                 local STBtnLabel = Library:CreateLabel({ Size=UDim2.new(1,0,1,-1); TextSize=stFontSz; Text=subDisplayName; PreserveCase=true; ZIndex=5; Parent=STBtn })
                 Library:RemoveFromRegistry(STBtnLabel)
                 STBtnLabel.TextColor3 = Color3.fromRGB(110,110,110)
-                -- black inner border on the selected sub-tab, matching the main tabs
                 local STInline = Library:Create('Frame', { BackgroundTransparency=1; BorderColor3=Color3.new(0,0,0); BorderSizePixel=1; Size=UDim2.new(1,-2,1,-2); Position=UDim2.new(0,1,0,1); Visible=false; ZIndex=6; Parent=STBtn })
                 local STUnder = Library:Create('Frame', { BackgroundColor3=Library.AccentColor; BorderSizePixel=0; Position=UDim2.new(0,0,0,0); Size=UDim2.new(1,0,0,1); Visible=false; ZIndex=5; Parent=STBtn })
                 Library:AddToRegistry(STUnder, { BackgroundColor3='AccentColor' })
@@ -3682,7 +3660,6 @@ function Library:CreateWindow(...)
                 Library.MenuRestPos = Outer.Position
             end
             Outer.Position = OFFSCREEN_POS
-            -- Actually stop rendering the whole tree; off-screen alone still costs every frame.
             Outer.Visible = false
         end
         Library.MenuShown = isVisible
@@ -3748,7 +3725,6 @@ function Library:CreateWindow(...)
     end
 
     if IsTouch then
-        -- Init position as pure offset so first drag never teleports
         local vp0   = workspace.CurrentCamera.ViewportSize
         local btnSz = S(36)
         local initX = math.floor(vp0.X / 2 - btnSz / 2)
@@ -3766,7 +3742,6 @@ function Library:CreateWindow(...)
         })
         Library:Create('UICorner', { CornerRadius = UDim.new(0, S(8)); Parent = mobLogo })
 
-        -- UIScale for press / hover animation
         local mobScale = Instance.new('UIScale')
         mobScale.Scale  = 1
         mobScale.Parent = mobLogo
@@ -3816,13 +3791,11 @@ function Library:CreateWindow(...)
             activeTouch = inp
             dragStartX  = inp.Position.X
             dragStartY  = inp.Position.Y
-            -- AbsolutePosition is always in screen-space pixels, safe to use as offset base
             frameStartX = mobLogo.AbsolutePosition.X
             frameStartY = mobLogo.AbsolutePosition.Y
             tweenMobScale(0.88, Enum.EasingStyle.Quad)
         end)
 
-        -- Single global handler — avoids double-move from button's own InputChanged
         Library:GiveSignal(Services.UserInputService.InputChanged:Connect(function(inp)
             if not dragging or inp ~= activeTouch then return end
             if inp.UserInputType ~= Enum.UserInputType.Touch
