@@ -3560,19 +3560,22 @@ function Library:CreateWindow(...)
                     Library:AddToRegistry(SliderBarOuter, { BackgroundColor3='BackgroundColor'; BorderColor3='OutlineColor' })
                     local SliderBarInner  = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderColor3=Color3.new(0,0,0); Size=UDim2.new(1,-2,1,-2); Position=UDim2.new(0,1,0,1); ZIndex=4; Parent=SliderBarOuter })
                     Library:AddToRegistry(SliderBarInner, { BackgroundColor3='BackgroundColor' })
-                    Library:CreateLabel({ Size=UDim2.new(1,0,0,S(18)); Position=UDim2.new(0,S(4),0,S(2)); TextSize=S(14); Text=Info3.Name; PreserveCase=true; TextXAlignment=Enum.TextXAlignment.Left; ZIndex=5; Parent=SliderBarInner })
-                    local ContentFrame = Library:Create('Frame', { BackgroundTransparency=1; Position=UDim2.new(0,S(4),0,S(20)); Size=UDim2.new(1,-S(8),1,-S(20)); ZIndex=1; Parent=SliderBarInner })
-                    Library:Create('UIListLayout', { FillDirection=Enum.FillDirection.Vertical; SortOrder=Enum.SortOrder.LayoutOrder; Parent=ContentFrame })
+                    local btnRow = Library:Create('Frame', { BackgroundTransparency=1; Position=UDim2.new(0,0,0,0); Size=UDim2.new(1,0,0,S(19)); ZIndex=5; Parent=SliderBarInner })
+                    local Button = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderSizePixel=0; Size=UDim2.new(1,0,1,0); ZIndex=6; Parent=btnRow })
+                    Library:AddToRegistry(Button, { BackgroundColor3='BackgroundColor' })
+                    local GroupboxUnder = Library:Create('Frame', { BackgroundColor3=Library.AccentColor; BorderSizePixel=0; Position=UDim2.new(0,0,0,0); Size=UDim2.new(1,0,0,1); ZIndex=8; Parent=Button })
+                    Library:AddToRegistry(GroupboxUnder, { BackgroundColor3='AccentColor' })
+                    Library:CreateLabel({ Size=UDim2.new(1,0,1,0); TextSize=S(12); Text=Info3.Name; PreserveCase=true; TextXAlignment=Enum.TextXAlignment.Center; ZIndex=7; Parent=Button })
+                    local ContentFrame = Library:Create('Frame', { BackgroundTransparency=1; Position=UDim2.new(0,S(4),0,S(20)); Size=UDim2.new(1,-S(8),0,0); ZIndex=1; Parent=SliderBarInner })
+                    local linkedList = Library:Create('UIListLayout', { FillDirection=Enum.FillDirection.Vertical; SortOrder=Enum.SortOrder.LayoutOrder; Padding=UDim.new(0,S(2)); Parent=ContentFrame })
                     function Groupbox:Resize()
-                        local sz = 0
-                        for _, el in ipairs(Groupbox.Container:GetChildren()) do
-                            if not el:IsA('UIListLayout') and el.Visible then sz = sz + el.Size.Y.Offset end
-                        end
+                        local sz = linkedList.AbsoluteContentSize.Y
                         SliderBarOuter.Size = UDim2.new(1,0,0, S(20) + sz + 4)
                     end
+                    linkedList:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function() Groupbox:Resize() end)
                     Groupbox.Container = ContentFrame
                     setmetatable(Groupbox, BaseGroupbox)
-                    Groupbox:AddBlank(3); Groupbox:Resize()
+                    Groupbox:AddBlank(6); Groupbox:Resize()
                     ST.Groupboxes[Info3.Name] = Groupbox
                     return Groupbox
                 end
@@ -3600,6 +3603,8 @@ function Library:CreateWindow(...)
                             BorderColor3      = function() return Library.OutlineColor end;
                         })
                         Library:CreateLabel({ Size=UDim2.new(1,0,1,0); TextSize=S(13); Text=TN; ZIndex=7; Parent=Button2 })
+                        local UpperLine2 = Library:Create('Frame', { BackgroundColor3=Library.AccentColor; BorderSizePixel=0; Position=UDim2.new(0,0,0,0); Size=UDim2.new(1,0,0,1); ZIndex=8; Visible=false; Parent=Button2 })
+                        Library:AddToRegistry(UpperLine2, { BackgroundColor3='AccentColor' })
                         local ContentFrame2 = Library:Create('Frame', { BackgroundTransparency=1; Position=UDim2.new(0,S(4),0,S(20)); Size=UDim2.new(1,-S(8),1,-S(20)); ZIndex=1; Visible=false; Parent=SliderBarInner })
                         Library:Create('UIListLayout', { FillDirection=Enum.FillDirection.Vertical; SortOrder=Enum.SortOrder.LayoutOrder; Parent=ContentFrame2 })
                         TBTab2.selected = false
@@ -3609,9 +3614,10 @@ function Library:CreateWindow(...)
                             ContentFrame2.Visible = true
                             Button2.BackgroundColor3 = Library.BackgroundColor
                             Button2.BorderSizePixel = 0
+                            UpperLine2.Visible = true
                             TBTab2:Resize()
                         end
-                        function TBTab2:Hide() TBTab2.selected=false; ContentFrame2.Visible=false; Button2.BackgroundColor3=Library.MainColor; Button2.BorderSizePixel=1; Button2.BorderColor3=Library.OutlineColor end
+                        function TBTab2:Hide() TBTab2.selected=false; ContentFrame2.Visible=false; Button2.BackgroundColor3=Library.MainColor; Button2.BorderSizePixel=1; Button2.BorderColor3=Library.OutlineColor; UpperLine2.Visible=false end
                         function TBTab2:Resize()
                             local n=0; for _ in next,Tabbox2.Tabs do n=n+1 end
                             for _, ch in ipairs(TabBtns2:GetChildren()) do if not ch:IsA('UIListLayout') then ch.Size=UDim2.new(1/n,0,1,0) end end
@@ -5081,4 +5087,3 @@ return {
     SaveManager  = SaveManager;
 }
 end)()
-
