@@ -2317,7 +2317,10 @@ do
         Library:AddToRegistry(DropdownInner, { BackgroundColor3='MainColor'; BorderColor3='OutlineColor' })
         Library:Create('UIGradient', { Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.new(1,1,1)),ColorSequenceKeypoint.new(1,Color3.fromRGB(212,212,212))}); Rotation=90; Parent=DropdownInner })
         local Arrow = Library:CreateLabel({ PreserveCase=true; AnchorPoint=Vector2.new(0.5,0.5); BackgroundTransparency=1; Position=UDim2.new(1,-S(11),0.5,0); Size=UDim2.fromOffset(S(14),S(14)); Text='>'; TextSize=S(14); Font=Enum.Font.GothamBold; ZIndex=8; Parent=DropdownInner })
-        local ItemLabel = Library:CreateLabel({ PreserveCase=true; Size=UDim2.new(1,-S(22),1,0); Position=UDim2.new(0,S(4),0,0); TextSize=S(13); Text=''; TextXAlignment=Enum.TextXAlignment.Left; TextTruncate=Enum.TextTruncate.AtEnd; ZIndex=8; Parent=DropdownInner })
+        -- Clip frame ends before the arrow; text is hard-clipped here so it can never reach
+        -- or overlap the ">" at any UI scale (TextTruncate alone drifts under UIScale).
+        local ItemClip  = Library:Create('Frame', { BackgroundTransparency=1; ClipsDescendants=true; Position=UDim2.new(0,S(4),0,0); Size=UDim2.new(1,-S(22),1,0); ZIndex=8; Parent=DropdownInner })
+        local ItemLabel = Library:CreateLabel({ PreserveCase=true; Size=UDim2.new(1,0,1,0); TextSize=S(13); Text=''; TextXAlignment=Enum.TextXAlignment.Left; TextTruncate=Enum.TextTruncate.AtEnd; ZIndex=8; Parent=ItemClip })
         Library:OnHighlight(DropdownOuter, DropdownOuter, { BorderColor3='OutlineColor' }, { BorderColor3='Black' })
         if type(Info.Tooltip)=='string' then Library:AddToolTip(Info.Tooltip, DropdownOuter) end
 
@@ -2342,12 +2345,11 @@ do
             local scale = Library.UIScaleValue or 1.0
             local ap  = DropdownOuter.AbsolutePosition
             local asz = DropdownOuter.AbsoluteSize
-            -- AbsolutePosition is real screen pixels. The UIScale on ListOuter scales SIZE
-            -- about the top-left anchor, NOT position — so position must be the raw absolute
-            -- pixels (no /scale), while size is /scale so UIScale multiplies it back to match.
-            ListOuter.AnchorPoint = Vector2.new(0, 0)
-            ListOuter.Position    = UDim2.fromOffset(ap.X, ap.Y + asz.Y + 1)
-            ListOuter.Size        = UDim2.fromOffset(asz.X / scale, ListOuter.Size.Y.Offset)
+            -- Same pattern as the color picker (UpdatePickerPos): a ScreenGui-parented frame
+            -- with a UIScale child is positioned by dividing the target absolute pixel coords
+            -- by the scale — the UIScale multiplies it back. Placed just below the dropdown.
+            ListOuter.Position = UDim2.fromOffset(ap.X / scale, (ap.Y + asz.Y + 1) / scale)
+            ListOuter.Size     = UDim2.fromOffset(asz.X / scale, ListOuter.Size.Y.Offset)
         end
         DropdownOuter:GetPropertyChangedSignal('AbsolutePosition'):Connect(UpdateListPos)
         DropdownOuter:GetPropertyChangedSignal('AbsoluteSize'):Connect(UpdateListPos)
