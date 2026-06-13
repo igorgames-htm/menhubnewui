@@ -2342,9 +2342,12 @@ do
             local scale = Library.UIScaleValue or 1.0
             local ap  = DropdownOuter.AbsolutePosition
             local asz = DropdownOuter.AbsoluteSize
-            -- Always place directly below the dropdown using its real absolute height.
-            ListOuter.Position = UDim2.fromOffset(ap.X / scale, (ap.Y + asz.Y + 1) / scale)
-            ListOuter.Size     = UDim2.fromOffset(asz.X / scale, ListOuter.Size.Y.Offset)
+            -- AbsolutePosition is real screen pixels. The UIScale on ListOuter scales SIZE
+            -- about the top-left anchor, NOT position — so position must be the raw absolute
+            -- pixels (no /scale), while size is /scale so UIScale multiplies it back to match.
+            ListOuter.AnchorPoint = Vector2.new(0, 0)
+            ListOuter.Position    = UDim2.fromOffset(ap.X, ap.Y + asz.Y + 1)
+            ListOuter.Size        = UDim2.fromOffset(asz.X / scale, ListOuter.Size.Y.Offset)
         end
         DropdownOuter:GetPropertyChangedSignal('AbsolutePosition'):Connect(UpdateListPos)
         DropdownOuter:GetPropertyChangedSignal('AbsoluteSize'):Connect(UpdateListPos)
@@ -4392,10 +4395,8 @@ ThemeManager.BuiltInThemes = {
 		end
 		gb:AddDivider()
 
-		gb:AddLabel('Pre-Made Themes', true)
-		gb:AddDivider()
 		gb:AddDropdown('ThemeManager_BuiltInThemeList', {
-			Text     = 'Theme',
+			Text     = 'Pre-Made Themes',
 			Values   = self:GetBuiltInThemeNames(),
 			Default  = 1,
 		})
@@ -4411,9 +4412,7 @@ ThemeManager.BuiltInThemes = {
 		end)
 
 		gb:AddDivider()
-		gb:AddLabel('Custom Themes', true)
-		gb:AddDivider()
-		gb:AddInput('ThemeManager_CustomThemeName', { Text = 'Theme Name' })
+		gb:AddInput('ThemeManager_CustomThemeName', { Text = 'Custom Theme Name' })
 		gb:AddDropdown('ThemeManager_CustomThemeList', {
 			Text     = 'Custom Themes',
 			Values   = self:ReloadCustomThemes(),
