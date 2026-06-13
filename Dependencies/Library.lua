@@ -3647,23 +3647,13 @@ function Library:CreateWindow(...)
 
 
 
-    local Blur, BlurDim
+    local Blur
     if not IsTouch then
         Blur = Services.Lighting:FindFirstChild("EliteZone_Blur") or Library:Create('BlurEffect', {
             Name    = "EliteZone_Blur",
             Size    = 30,
             Enabled = false,
             Parent  = Services.Lighting
-        })
-        -- dark overlay that sits behind the GUI to deepen the blur
-        BlurDim = Library:Create('Frame', {
-            BackgroundColor3    = Color3.new(0, 0, 0);
-            BackgroundTransparency = 0.45;
-            BorderSizePixel     = 0;
-            Size                = UDim2.new(1, 0, 1, 0);
-            ZIndex              = 1;
-            Visible             = false;
-            Parent              = ScreenGui;
         })
     end
 
@@ -3697,7 +3687,6 @@ function Library:CreateWindow(...)
         for _, cb in ipairs(Library.VisibilityCallbacks) do pcall(cb, isVisible) end
 
         if Blur then Blur.Enabled = isVisible end
-        if BlurDim then BlurDim.Visible = isVisible end
         OuterScale.Scale = Library.UIScaleValue or 1
 
         do
