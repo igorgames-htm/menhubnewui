@@ -2485,19 +2485,21 @@ do
             Library:SafeCallback(DropdownData.Changed,  DropdownData.Value)
         end
 
-        -- Header click opens the list. When the list is already open the Blocker sits over the
-        -- header (and everything else), so this only fires from the closed state.
+        -- Open on header click. Guarded by MouseIsOverOpenedFrame so a click that lands on this
+        -- header THROUGH another dropdown's open list (Roblox fires InputBegan on every overlapping
+        -- object, not just the top one) can't open this dropdown. Also no-op while already open.
         DropdownOuter.InputBegan:Connect(function(Input)
             if not Library:IsPointerInput(Input) then return end
             if ListOuter.Visible then return end
+            if Library:MouseIsOverOpenedFrame() then return end
             DropdownData:OpenDropdown()
         end)
-        -- The list (ZIndex 20+) renders above the Blocker (19), so clicking an option hits the
-        -- option, not the Blocker. Clicking ANYWHERE else hits the Blocker first: it closes the
-        -- list and, being Active and full-screen, sinks the click so it can't reach a dropdown
-        -- or control behind it. That's what stops the "other dropdown opened too" click-through.
+        -- The Blocker also receives clicks that land on the list (InputBegan isn't sunk between
+        -- GUI objects), so only close when the click is genuinely OUTSIDE the list — otherwise
+        -- selecting an option would close the dropdown.
         Blocker.InputBegan:Connect(function(Input)
             if not Library:IsPointerInput(Input) then return end
+            if Library:IsMouseOverFrame(ListOuter) then return end
             DropdownData:CloseDropdown()
         end)
 
