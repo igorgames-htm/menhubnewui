@@ -4975,8 +4975,8 @@ function SaveManager.BuildConfigSection(self, tabOrGroupbox)
         error'BuildConfigSection: expected a Tab or Groupbox'
     end
 
-    section:AddInput('SaveManager_ConfigName', { Text = 'Config name' })
-    section:AddDropdown('SaveManager_ConfigList', { Text = 'Config list', Values = self:RefreshConfigList(), AllowNull = true })
+    section:AddInput('SaveManager_ConfigName', { Text = 'Config Name' })
+    section:AddDropdown('SaveManager_ConfigList', { Text = 'Configs', Values = self:RefreshConfigList(), AllowNull = true })
     section:AddDivider()
 
     section:AddButton('Save Config', function()
@@ -4999,9 +4999,7 @@ function SaveManager.BuildConfigSection(self, tabOrGroupbox)
         if not name then return self.Library:Notify('No config selected.', 2) end
         local ok, err = self:Save(name)
         if not ok then return warn('[Elite Zone] Failed to save config') end
-    end)
-
-    section:AddButton('Delete', function()
+    end):AddButton('Delete', function()
         local name = Options.SaveManager_ConfigList.Value
         if not name then return self.Library:Notify('No config selected.', 2) end
         self.Library:CreatePrompt({
@@ -5024,9 +5022,7 @@ function SaveManager.BuildConfigSection(self, tabOrGroupbox)
         Options.SaveManager_ConfigList.Values = self:RefreshConfigList()
         Options.SaveManager_ConfigList:SetValues()
         Options.SaveManager_ConfigList:SetValue(nil)
-    end)
-
-    section:AddButton('Set as autoload', function()
+    end):AddButton('Set as autoload', function()
         local name = Options.SaveManager_ConfigList.Value
         if not name then return self.Library:Notify('No config selected.', 2) end
         writefile('Elite Zone/Rivals/Settings/autoload.txt', name)
