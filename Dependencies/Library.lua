@@ -3460,12 +3460,19 @@ function Library:CreateWindow(...)
             local SubArea = Library:Create('ScrollingFrame', {
                 BackgroundTransparency  = 1;
                 BorderSizePixel         = 0;
-                Size                    = UDim2.new(1,0,0,S(22));
+                Size                    = UDim2.new(1,0,0,S(28));
                 CanvasSize              = UDim2.new(0,0,0,0);
                 ScrollBarThickness      = IsMobile and S(4) or 0;
                 ScrollingDirection      = Enum.ScrollingDirection.X;
                 ZIndex                  = 3;
                 Parent                  = TFrame;
+            })
+            Library:Create('UIPadding', {
+                PaddingTop     = UDim.new(0, S(4));
+                PaddingBottom  = UDim.new(0, S(4));
+                PaddingLeft    = UDim.new(0, S(8));
+                PaddingRight   = UDim.new(0, S(8));
+                Parent         = SubArea;
             })
             local SubLayout = Library:Create('UIListLayout', {
                 FillDirection       = Enum.FillDirection.Horizontal;
