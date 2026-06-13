@@ -2333,8 +2333,13 @@ do
             local scale = Library.UIScaleValue or 1.0
             local ap  = DropdownOuter.AbsolutePosition
             local asz = DropdownOuter.AbsoluteSize
-            ListOuter.Position = UDim2.fromOffset(ap.X / scale, (ap.Y + asz.Y + 1) / scale)
-            ListOuter.Size     = UDim2.fromOffset(asz.X / scale, ListOuter.Size.Y.Offset)
+            local sizeX = asz.X / scale
+            ListOuter.Size = UDim2.fromOffset(sizeX, ListOuter.Size.Y.Offset)
+            local sizeY = ListOuter.Size.Y.Offset
+            ListOuter.Position = UDim2.fromOffset(
+                ap.X + sizeX * (scale - 1) / 2,
+                (ap.Y + asz.Y + 1) + sizeY * (scale - 1) / 2
+            )
         end
         DropdownOuter:GetPropertyChangedSignal('AbsolutePosition'):Connect(UpdateListPos)
         DropdownOuter:GetPropertyChangedSignal('AbsoluteSize'):Connect(UpdateListPos)
@@ -2401,6 +2406,7 @@ do
             local y = math.clamp(count * itemH, 0, MAX * itemH) + 1
             ListOuter.Size = UDim2.fromOffset(ListOuter.Size.X.Offset, y)
             Scroll.CanvasSize = UDim2.new(0, 0, 0, count * itemH + 1)
+            UpdateListPos()
         end
 
         function DropdownData:OpenDropdown()  UpdateListPos(); ListOuter.Visible = true;  Library.OpenedFrames[ListOuter] = true;  Arrow.Rotation = 90 end
