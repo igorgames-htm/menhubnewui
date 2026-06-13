@@ -2221,15 +2221,28 @@ do
         function Slider:GetValueFromX(x)
             return Round(Library:MapValue(math.clamp(x,0,Slider.MaxSize), 0, Slider.MaxSize, Slider.Min, Slider.Max))
         end
-        local FillTweenInfo = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        -- Smooth fill: a continuous render-loop lerp toward the target width. It runs
+        -- only while the fill is catching up, then disconnects itself (no idle cost).
+        local CurX, TargetX, LerpConn = 0, 0, nil
+        local function StopLerp() if LerpConn then LerpConn:Disconnect(); LerpConn = nil end end
+        local function ApplyFill(px)
+            px = math.floor(px + 0.5)
+            Fill.Size = UDim2.new(0, px, 1, 0)
+            HideBR.Visible = not (px >= Slider.MaxSize or px <= 0)
+        end
+        local function StartLerp()
+            if LerpConn then return end
+            LerpConn = Services.RunService.RenderStepped:Connect(function(dt)
+                CurX = CurX + (TargetX - CurX) * math.clamp(dt * 18, 0, 1)
+                if math.abs(TargetX - CurX) <= 0.5 then CurX = TargetX; ApplyFill(CurX); StopLerp(); return end
+                ApplyFill(CurX)
+            end)
+        end
         function Slider:Display()
             local suf = Info.Suffix or ''
             DropdownLabel.Text = Library:TranslateString(Info.Text)..': '..Slider.Value..suf
-            local x = math.ceil(Library:MapValue(Slider.Value, Slider.Min, Slider.Max, 0, Slider.MaxSize))
-            -- Smoothly animate the fill to the target instead of snapping. A new tween
-            -- cancels the previous one, so dragging follows the cursor fluidly.
-            Services.TweenService:Create(Fill, FillTweenInfo, { Size = UDim2.new(0, x, 1, 0) }):Play()
-            HideBR.Visible = not (x == Slider.MaxSize or x == 0)
+            TargetX = math.ceil(Library:MapValue(Slider.Value, Slider.Min, Slider.Max, 0, Slider.MaxSize))
+            StartLerp()
         end
         function Slider:UpdateColors()
             Fill.BackgroundColor3  = Library.AccentColor
@@ -2357,7 +2370,6 @@ do
                 Library:AddToRegistry(SliderBackFrame, { BackgroundColor3='MainColor'; BorderColor3='OutlineColor' })
                 local SliderBarSelected = Library:Create('Frame', { BackgroundColor3=Color3.new(1,1,1); BackgroundTransparency=0.75; BorderSizePixel=0; Size=UDim2.new(1,0,1,0); Visible=false; ZIndex=24; Parent=SliderBackFrame })
                 local SliderBarLabel = Library:CreateLabel({ PreserveCase = true; Active=false; Size=UDim2.new(1,-S(6),1,0); Position=UDim2.new(0,S(6),0,0); TextSize=S(13); Text=val; TextXAlignment=Enum.TextXAlignment.Left; ZIndex=25; Parent=SliderBackFrame })
-                Library:OnHighlight(SliderBackFrame, SliderBackFrame, { BorderColor3='AccentColor'; ZIndex=24 }, { BorderColor3='OutlineColor'; ZIndex=23 })
                 local selected = Info.Multi and DropdownData.Value[val] or (DropdownData.Value == val)
                 local function UpdateBtn()
                     selected = Info.Multi and (DropdownData.Value[val] ~= nil) or (DropdownData.Value == val)
@@ -3536,8 +3548,8 @@ function Library:CreateWindow(...)
                         Library:CreateLabel({ Size=UDim2.new(1,0,1,0); TextSize=S(13); Text=TN; ZIndex=7; Parent=Button2 })
                         local UpperLine2 = Library:Create('Frame', { BackgroundColor3=Library.AccentColor; BorderSizePixel=0; Position=UDim2.new(0,0,0,0); Size=UDim2.new(1,0,0,1); ZIndex=8; Visible=false; Parent=Button2 })
                         Library:AddToRegistry(UpperLine2, { BackgroundColor3='AccentColor' })
-                        local ContentFrame2 = Library:Create('Frame', { BackgroundTransparency=1; Position=UDim2.new(0,S(4),0,S(20)); Size=UDim2.new(1,-S(8),1,-S(20)); ZIndex=1; Visible=false; Parent=SliderBarInner })
-                        Library:Create('UIListLayout', { FillDirection=Enum.FillDirection.Vertical; SortOrder=Enum.SortOrder.LayoutOrder; Parent=ContentFrame2 })
+                        local ContentFrame2 = Library:Create('Frame', { BackgroundTransparency=1; Position=UDim2.new(0,S(4),0,S(20)); Size=UDim2.new(1,-S(8),0,0); ZIndex=1; Visible=false; Parent=SliderBarInner })
+                        local LL2 = Library:Create('UIListLayout', { FillDirection=Enum.FillDirection.Vertical; SortOrder=Enum.SortOrder.LayoutOrder; Parent=ContentFrame2 })
                         TBTab2.selected = false
                         function TBTab2:Show()
                             for _, t in next, Tabbox2.Tabs do t:Hide() end
@@ -3553,10 +3565,9 @@ function Library:CreateWindow(...)
                             local n=0; for _ in next,Tabbox2.Tabs do n=n+1 end
                             for _, ch in ipairs(TabBtns2:GetChildren()) do if not ch:IsA('UIListLayout') then ch.Size=UDim2.new(1/n,0,1,0) end end
                             if not ContentFrame2.Visible then return end
-                            local sz=0
-                            for _, el in ipairs(TBTab2.Container:GetChildren()) do if not el:IsA('UIListLayout') and el.Visible then sz=sz+el.Size.Y.Offset end end
-                            SliderBarOuter.Size = UDim2.new(1,0,0, S(20)+sz+4)
+                            SliderBarOuter.Size = UDim2.new(1,0,0, S(20)+LL2.AbsoluteContentSize.Y+4)
                         end
+                        LL2:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function() if ContentFrame2.Visible then TBTab2:Resize() end end)
                         Button2.InputBegan:Connect(function(Input) if Library:IsPointerInput(Input) and not Library:MouseIsOverOpenedFrame() then TBTab2:Show() end end)
                         TBTab2.Container = ContentFrame2
                         Tabbox2.Tabs[TN] = TBTab2
