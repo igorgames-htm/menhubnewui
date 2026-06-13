@@ -3468,10 +3468,11 @@ function Library:CreateWindow(...)
                 Parent                  = TFrame;
             })
             local SubLayout = Library:Create('UIListLayout', {
-                FillDirection  = Enum.FillDirection.Horizontal;
-                SortOrder      = Enum.SortOrder.LayoutOrder;
-                Padding        = UDim.new(0,0);
-                Parent         = SubArea;
+                FillDirection       = Enum.FillDirection.Horizontal;
+                SortOrder           = Enum.SortOrder.LayoutOrder;
+                HorizontalAlignment = Enum.HorizontalAlignment.Center;
+                Padding             = UDim.new(0, S(6));
+                Parent              = SubArea;
             })
 
             local function MakeSubSide(xScale, xOffset)
@@ -3507,19 +3508,16 @@ function Library:CreateWindow(...)
                 local ST = { Groupboxes={}; Tabboxes={} }
                 local subDisplayName = tostring(SubName or "")
 
-                local stW = Library:GetTextBounds(subDisplayName, Library.Font, S(14)) + S(10)
+                local stFontSz = IsMobile and S(12) or S(13)
+                local stW = Library:GetTextBounds(subDisplayName, Library.Font, stFontSz) + S(IsMobile and 22 or 18)
                 local STBtn = Library:Create('Frame', { BackgroundColor3=Library.BackgroundColor; BorderColor3=Library.OutlineColor; Size=UDim2.new(0,stW,1,0); ZIndex=4; Parent=SubArea })
                 Library:AddToRegistry(STBtn, { BackgroundColor3='BackgroundColor'; BorderColor3='OutlineColor' })
-                Library:CreateLabel({ Size=UDim2.new(1,0,1,-1); TextSize=S(13); Text=subDisplayName; PreserveCase=true; ZIndex=4; Parent=STBtn })
-                table.insert(Library.TabResizeCallbacks, function()
-                    if not STBtn.Parent then return end
-                    local total = 0
-                    for _ in next, SubTabSystem.Tabs do total = total + 1 end
-                    if total > 0 then
-                        STBtn.Size = UDim2.new(1/total, 0, 1, 0)
-                    end
-                end)
-                local STUnder = Library:Create('Frame', { BackgroundColor3=Library.AccentColor; BorderSizePixel=0; Position=UDim2.new(0,0,1,-2); Size=UDim2.new(1,0,0,2); Visible=false; ZIndex=5; Parent=STBtn })
+                local STBtnLabel = Library:CreateLabel({ Size=UDim2.new(1,0,1,-1); TextSize=stFontSz; Text=subDisplayName; PreserveCase=true; ZIndex=5; Parent=STBtn })
+                Library:RemoveFromRegistry(STBtnLabel)
+                STBtnLabel.TextColor3 = Color3.fromRGB(110,110,110)
+                -- black inner border on the selected sub-tab, matching the main tabs
+                local STInline = Library:Create('Frame', { BackgroundTransparency=1; BorderColor3=Color3.new(0,0,0); BorderSizePixel=1; Size=UDim2.new(1,-2,1,-2); Position=UDim2.new(0,1,0,1); Visible=false; ZIndex=6; Parent=STBtn })
+                local STUnder = Library:Create('Frame', { BackgroundColor3=Library.AccentColor; BorderSizePixel=0; Position=UDim2.new(0,0,0,0); Size=UDim2.new(1,0,0,1); Visible=false; ZIndex=5; Parent=STBtn })
                 Library:AddToRegistry(STUnder, { BackgroundColor3='AccentColor' })
 
                 local STLeft  = MakeSubSide(0,   S(7))
@@ -3531,11 +3529,19 @@ function Library:CreateWindow(...)
                 function ST:ShowTab()
                     for _, t in next, SubTabSystem.Tabs do t:HideTab() end
                     STUnder.Visible = true
+                    STInline.Visible = true
+                    STBtnLabel.TextColor3 = Color3.new(1,1,1)
+                    STBtn.BackgroundColor3 = Library.MainColor
+                    if Library.RegistryMap[STBtn] then Library.RegistryMap[STBtn].Properties.BackgroundColor3 = 'MainColor' end
                     STLeft.Visible  = true
                     STRight.Visible = true
                 end
                 function ST:HideTab()
                     STUnder.Visible = false
+                    STInline.Visible = false
+                    STBtnLabel.TextColor3 = Color3.fromRGB(110,110,110)
+                    STBtn.BackgroundColor3 = Library.BackgroundColor
+                    if Library.RegistryMap[STBtn] then Library.RegistryMap[STBtn].Properties.BackgroundColor3 = 'BackgroundColor' end
                     STLeft.Visible  = false
                     STRight.Visible = false
                 end
