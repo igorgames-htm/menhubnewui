@@ -351,8 +351,10 @@ function Library:Unload()
         table.remove(Library.Signals, i):Disconnect()
     end
     if Library.OnUnload then Library.OnUnload() end
-    local ezBlur = Services.Lighting:FindFirstChild("EliteZone_Blur")
-    if ezBlur then ezBlur:Destroy() end
+    if not IsTouch then
+        local ezBlur = Services.Lighting:FindFirstChild("EliteZone_Blur")
+        if ezBlur then ezBlur:Destroy() end
+    end
     ScreenGui:Destroy()
 end
 
@@ -692,61 +694,69 @@ do
     Library.WatermarkText = WindowMoverLabel
     Library:MakeDraggable(WindowMoverOuter)
 
-    local KeybindOuter = Library:Create('Frame', {
-        AnchorPoint   = Vector2.new(0, 0.5);
-        BorderColor3  = Color3.new(0,0,0);
-        Position      = UDim2.new(0, S(10), 0.5, 0);
-        Size          = UDim2.fromOffset(S(210), S(20));
-        Visible       = false;
-        ZIndex        = 100;
-        Parent        = ScreenGui;
-    })
-    local KeybindInner = Library:Create('Frame', {
-        BackgroundColor3  = Library.MainColor;
-        BorderColor3      = Library.OutlineColor;
-        BorderMode        = Enum.BorderMode.Inset;
-        Size              = UDim2.new(1,0,1,0);
-        ZIndex            = 101;
-        Parent            = KeybindOuter;
-    })
-    Library:AddToRegistry(KeybindInner, { BackgroundColor3 = 'MainColor'; BorderColor3 = 'OutlineColor' }, true)
-    
-    local KeybindGradient = Library:Create('UIGradient', {
-        Color     = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.new(1,1,1)), ColorSequenceKeypoint.new(1, Color3.fromRGB(212,212,212)) });
-        Rotation  = 90;
-        Parent    = KeybindInner;
-    })
+    if not IsTouch then
+        local KeybindOuter = Library:Create('Frame', {
+            AnchorPoint   = Vector2.new(0, 0.5);
+            BorderColor3  = Color3.new(0,0,0);
+            Position      = UDim2.new(0, S(10), 0.5, 0);
+            Size          = UDim2.fromOffset(S(210), S(20));
+            Visible       = false;
+            ZIndex        = 100;
+            Parent        = ScreenGui;
+        })
+        local KeybindInner = Library:Create('Frame', {
+            BackgroundColor3  = Library.MainColor;
+            BorderColor3      = Library.OutlineColor;
+            BorderMode        = Enum.BorderMode.Inset;
+            Size              = UDim2.new(1,0,1,0);
+            ZIndex            = 101;
+            Parent            = KeybindOuter;
+        })
+        Library:AddToRegistry(KeybindInner, { BackgroundColor3 = 'MainColor'; BorderColor3 = 'OutlineColor' }, true)
 
-    local KeybindTopLine = Library:Create('Frame', {
-        BackgroundColor3  = Library.AccentColor;
-        BorderSizePixel   = 0;
-        Size              = UDim2.new(1,0,0,2);
-        ZIndex            = 102;
-        Parent            = KeybindInner;
-    })
-    Library:AddToRegistry(KeybindTopLine, { BackgroundColor3 = 'AccentColor' }, true)
-    
-    Library:CreateLabel({
-        Size            = UDim2.new(1,0,0,S(20));
-        Position        = UDim2.fromOffset(0, S(2));
-        TextXAlignment  = Enum.TextXAlignment.Center;
-        Text            = 'Keybinds';
-        Font            = Enum.Font.GothamBold;
-        ZIndex          = 104;
-        Parent          = KeybindInner;
-    })
-    local KeybindContainer = Library:Create('Frame', {
-        BackgroundTransparency  = 1;
-        Position                = UDim2.new(0,0,0,S(22));
-        Size                    = UDim2.new(1,0,1,-S(22));
-        ZIndex                  = 1;
-        Parent                  = KeybindInner;
-    })
-    Library:Create('UIListLayout', { FillDirection = Enum.FillDirection.Vertical; SortOrder = Enum.SortOrder.LayoutOrder; Parent = KeybindContainer })
-    Library:Create('UIPadding',    { PaddingLeft = UDim.new(0, S(5)); Parent = KeybindContainer })
-    Library.KeybindFrame     = KeybindOuter
-    Library.KeybindContainer = KeybindContainer
-    Library:MakeDraggableDirect(KeybindOuter)
+        local KeybindGradient = Library:Create('UIGradient', {
+            Color     = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.new(1,1,1)), ColorSequenceKeypoint.new(1, Color3.fromRGB(212,212,212)) });
+            Rotation  = 90;
+            Parent    = KeybindInner;
+        })
+
+        local KeybindTopLine = Library:Create('Frame', {
+            BackgroundColor3  = Library.AccentColor;
+            BorderSizePixel   = 0;
+            Size              = UDim2.new(1,0,0,2);
+            ZIndex            = 102;
+            Parent            = KeybindInner;
+        })
+        Library:AddToRegistry(KeybindTopLine, { BackgroundColor3 = 'AccentColor' }, true)
+
+        Library:CreateLabel({
+            Size            = UDim2.new(1,0,0,S(20));
+            Position        = UDim2.fromOffset(0, S(2));
+            TextXAlignment  = Enum.TextXAlignment.Center;
+            Text            = 'Keybinds';
+            Font            = Enum.Font.GothamBold;
+            ZIndex          = 104;
+            Parent          = KeybindInner;
+        })
+        local KeybindContainer = Library:Create('Frame', {
+            BackgroundTransparency  = 1;
+            Position                = UDim2.new(0,0,0,S(22));
+            Size                    = UDim2.new(1,0,1,-S(22));
+            ZIndex                  = 1;
+            Parent                  = KeybindInner;
+        })
+        Library:Create('UIListLayout', { FillDirection = Enum.FillDirection.Vertical; SortOrder = Enum.SortOrder.LayoutOrder; Parent = KeybindContainer })
+        Library:Create('UIPadding',    { PaddingLeft = UDim.new(0, S(5)); Parent = KeybindContainer })
+        Library.KeybindFrame     = KeybindOuter
+        Library.KeybindContainer = KeybindContainer
+        Library:MakeDraggableDirect(KeybindOuter)
+    else
+        -- Mobile stubs so SetKeybindVisibility / HudBindLabel references don't error
+        local stub = Instance.new('Frame')
+        stub.Visible = false
+        Library.KeybindFrame     = stub
+        Library.KeybindContainer = stub
+    end
 end
 
 function Library:SetWatermarkVisibility(b)  Library.Watermark.Visible = b end
@@ -3637,12 +3647,25 @@ function Library:CreateWindow(...)
 
 
 
-    local Blur = Services.Lighting:FindFirstChild("EliteZone_Blur") or Library:Create('BlurEffect', {
-        Name     = "EliteZone_Blur",
-        Size     = 20,
-        Enabled  = false,
-        Parent   = Services.Lighting
-    })
+    local Blur, BlurDim
+    if not IsTouch then
+        Blur = Services.Lighting:FindFirstChild("EliteZone_Blur") or Library:Create('BlurEffect', {
+            Name    = "EliteZone_Blur",
+            Size    = 30,
+            Enabled = false,
+            Parent  = Services.Lighting
+        })
+        -- dark overlay that sits behind the GUI to deepen the blur
+        BlurDim = Library:Create('Frame', {
+            BackgroundColor3    = Color3.new(0, 0, 0);
+            BackgroundTransparency = 0.45;
+            BorderSizePixel     = 0;
+            Size                = UDim2.new(1, 0, 1, 0);
+            ZIndex              = 1;
+            Visible             = false;
+            Parent              = ScreenGui;
+        })
+    end
 
     local OFFSCREEN_POS = UDim2.fromOffset(-99999, -99999)
     local tabsInitialized = false
@@ -3673,7 +3696,8 @@ function Library:CreateWindow(...)
         setInputSink(isVisible)
         for _, cb in ipairs(Library.VisibilityCallbacks) do pcall(cb, isVisible) end
 
-        Blur.Enabled = isVisible
+        if Blur then Blur.Enabled = isVisible end
+        if BlurDim then BlurDim.Visible = isVisible end
         OuterScale.Scale = Library.UIScaleValue or 1
 
         do
