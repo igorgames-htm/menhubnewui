@@ -4318,8 +4318,18 @@ ThemeManager.BuiltInThemes = {
 
 		if Options and Options.ThemeManager_Font then
 			local fontName = Options.ThemeManager_Font.Value
-			self.Library.Font = Enum.Font.Code
-			self.Library.CustomFontFace = resolved
+			local fs       = self.Library.FontSystem
+			local lname    = string.lower(tostring(fontName or ''))
+			lname = (fs and fs.Aliases and fs.Aliases[lname]) or lname
+			local builtinEnum = fs and fs.Builtin and fs.Builtin[lname]
+			if builtinEnum then
+				self.Library.Font          = builtinEnum
+				self.Library.CustomFontFace = nil
+			else
+				local resolved = fs and fs.Resolve(fontName)
+				self.Library.Font          = Enum.Font.Code
+				self.Library.CustomFontFace = resolved
+			end
 		end
 
 		if self.Library and type(self.Library.SetIconSize) == 'function' then
