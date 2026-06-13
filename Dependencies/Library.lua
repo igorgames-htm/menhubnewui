@@ -2328,18 +2328,47 @@ do
         Library:AddToRegistry(Scroll, { ScrollBarImageColor3='AccentColor' })
         Library:Create('UIListLayout', { Padding=UDim.new(0,0); FillDirection=Enum.FillDirection.Vertical; SortOrder=Enum.SortOrder.LayoutOrder; Parent=Scroll })
 
+        -- Best-effort initial guess (so the first frame isn't wildly off). The corrective
+        -- loop below then pins the list exactly, regardless of how the UIScale behaves.
         local function UpdateListPos()
             if not DropdownOuter.Parent then return end
             local scale = Library.UIScaleValue or 1.0
             local ap  = DropdownOuter.AbsolutePosition
             local asz = DropdownOuter.AbsoluteSize
-            local sizeX = asz.X / scale
-            ListOuter.Size = UDim2.fromOffset(sizeX, ListOuter.Size.Y.Offset)
-            local sizeY = ListOuter.Size.Y.Offset
-            ListOuter.Position = UDim2.fromOffset(
-                ap.X + sizeX * (scale - 1) / 2,
-                (ap.Y + asz.Y + 1) + sizeY * (scale - 1) / 2
-            )
+            ListOuter.Size     = UDim2.fromOffset(asz.X / scale, ListOuter.Size.Y.Offset)
+            ListOuter.Position = UDim2.fromOffset(ap.X, ap.Y + asz.Y + 1)
+        end
+
+        -- Bulletproof placement: AbsolutePosition is the REAL rendered top-left. Whatever the
+        -- UIScale does to position/size/pivot, we read where the list actually landed and nudge
+        -- its offset until its top-left sits exactly at the dropdown's bottom-left. Runs only
+        -- while the list is open and goes idle once it converges (error < 0.5px).
+        local correcting = false
+        local function StartCorrecting()
+            if correcting then return end
+            correcting = true
+            task.spawn(function()
+                while ListOuter.Visible and DropdownOuter.Parent do
+                    local scale = Library.UIScaleValue or 1.0
+                    local ap    = DropdownOuter.AbsolutePosition
+                    local asz   = DropdownOuter.AbsoluteSize
+                    local wantW = asz.X / scale
+                    if math.abs(ListOuter.Size.X.Offset - wantW) > 0.5 then
+                        ListOuter.Size = UDim2.fromOffset(wantW, ListOuter.Size.Y.Offset)
+                    end
+                    local cur = ListOuter.AbsolutePosition
+                    local ex  = ap.X - cur.X
+                    local ey  = (ap.Y + asz.Y + 1) - cur.Y
+                    if math.abs(ex) > 0.5 or math.abs(ey) > 0.5 then
+                        ListOuter.Position = UDim2.fromOffset(
+                            ListOuter.Position.X.Offset + ex,
+                            ListOuter.Position.Y.Offset + ey
+                        )
+                    end
+                    Services.RunService.Heartbeat:Wait()
+                end
+                correcting = false
+            end)
         end
         DropdownOuter:GetPropertyChangedSignal('AbsolutePosition'):Connect(UpdateListPos)
         DropdownOuter:GetPropertyChangedSignal('AbsoluteSize'):Connect(UpdateListPos)
@@ -2409,7 +2438,7 @@ do
             UpdateListPos()
         end
 
-        function DropdownData:OpenDropdown()  UpdateListPos(); ListOuter.Visible = true;  Library.OpenedFrames[ListOuter] = true;  Arrow.Rotation = 90 end
+        function DropdownData:OpenDropdown()  UpdateListPos(); ListOuter.Visible = true;  Library.OpenedFrames[ListOuter] = true;  Arrow.Rotation = 90; StartCorrecting() end
         function DropdownData:CloseDropdown() ListOuter.Visible = false; Library.OpenedFrames[ListOuter] = nil;   Arrow.Rotation = 0  end
         function DropdownData:OnChanged(fn)   DropdownData.Changed = fn; fn(DropdownData.Value) end
         function DropdownData:SetValue(val)
