@@ -1068,7 +1068,7 @@ do
             Parent            = TextLabelRef;
         })
         if Info.Transparency then
-            Library:Create('ImageLabel', { BorderSizePixel = 0; Size = UDim2.new(0, DisplayWidth-1, 0, DispH-1); ZIndex = 14; Image = 'rbxassetid://12977615774'; Parent = Swatch })
+            Library:Create('ImageLabel', { BorderSizePixel = 0; Size = UDim2.new(0, DisplayWidth-1, 0, DispH-1); ZIndex = 14; Image = 'rbxassetid://126479907072494'; Parent = Swatch })
         end
 
         local pickerW = S(230)
