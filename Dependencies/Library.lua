@@ -1039,7 +1039,6 @@ end
 local BaseAddons  = {}
 local BaseGroupbox = {}
 
-do
     local Funcs = {}
 
     function Funcs:AddColorPicker(Idx, Info)
@@ -5117,4 +5116,3 @@ return {
     ThemeManager = ThemeManager;
     SaveManager  = SaveManager;
 }
-end)()
