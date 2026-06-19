@@ -2681,7 +2681,7 @@ function Library:CreateWindow(...)
 
     local WinW, WinH
     do
-        WinW = IsTouch and 380 or 780; WinH = IsTouch and 400 or 620
+        WinW = IsTouch and 380 or 780; WinH = IsTouch and 320 or 680
         if Config.Center then
             Config.AnchorPoint = Vector2.zero
             Config.Position    = UDim2.new(0.5, -math.floor(WinW / 2), 0.5, -math.floor(WinH / 2))
