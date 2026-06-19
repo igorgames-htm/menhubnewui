@@ -15,7 +15,7 @@ ScreenGui.IgnoreGuiInset = true
 ScreenGui.Name = ""
 ScreenGui.Parent = Services.CoreGui
 
-local IsTouch  = (rawget(_G, "mobiledebug") == true) or (Services.UserInputService.TouchEnabled and not Services.UserInputService.MouseEnabled)
+local IsTouch  = Services.UserInputService.TouchEnabled
 
 local Camera       = workspace.CurrentCamera
 local ScreenWidth  = Camera.ViewportSize.X
