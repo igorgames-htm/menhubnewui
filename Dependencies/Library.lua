@@ -1039,6 +1039,7 @@ end
 local BaseAddons  = {}
 local BaseGroupbox = {}
 
+do
     local Funcs = {}
 
     function Funcs:AddColorPicker(Idx, Info)
@@ -5110,9 +5111,13 @@ end
 SaveManager:BuildFolderTree()
 end
 
+getgenv().EZLibrary = Library
+getgenv().EZThemeManager = ThemeManager
+getgenv().EZSaveManager = SaveManager
 
 return {
     Library      = Library;
     ThemeManager = ThemeManager;
     SaveManager  = SaveManager;
 }
+end)()
