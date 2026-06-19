@@ -3800,7 +3800,7 @@ function Library:CreateWindow(...)
             BorderSizePixel   = 0;
             Position          = UDim2.fromOffset(initX, initY);
             Size              = UDim2.fromOffset(btnSz, btnSz);
-            Image             = 'https://ez-ez.vercel.app/big_logo.png';
+            Image             = 'rbxassetid://126479907072494';
             ScaleType         = Enum.ScaleType.Fit;
             ZIndex            = 260;
             Parent            = ScreenGui;
@@ -3818,28 +3818,6 @@ function Library:CreateWindow(...)
                 { Scale = target }
             ):Play()
         end
-
-        task.spawn(function()
-            local assetPath = 'Elite Zone/Rivals/Assets/big_logo.png'
-            pcall(function()
-                if isfile and isfile(assetPath) and getcustomasset then
-                    mobLogo.Image = getcustomasset(assetPath)
-                    return
-                end
-                local req = request or http_request or (syn and syn.request)
-                if not req or not writefile or not getcustomasset then return end
-                if makefolder then
-                    pcall(makefolder, 'Elite Zone')
-                    pcall(makefolder, 'Elite Zone/Rivals')
-                    pcall(makefolder, 'Elite Zone/Rivals/Assets')
-                end
-                local res = req({ Url = 'https://ez-ez.vercel.app/big_logo.png', Method = 'GET' })
-                local body = res and (res.Body or res.body)
-                if type(body) ~= 'string' or #body == 0 then return end
-                writefile(assetPath, body)
-                mobLogo.Image = getcustomasset(assetPath)
-            end)
-        end)
 
         local dragging    = false
         local movedLogo   = false
@@ -4824,13 +4802,7 @@ SaveManager.Parser = {
 
 function SaveManager.BuildFolderTree(self)
     if not isfolder then return end
-    local paths = {
-        'Elite Zone',
-        'Elite Zone/Assets',
-        'Elite Zone/Rivals',
-        'Elite Zone/Rivals/Settings',
-        'Elite Zone/Rivals/Themes',
-    }
+    local paths = {}
     for _, path in ipairs(paths) do
         if not isfolder(path) then makefolder(path) end
     end
