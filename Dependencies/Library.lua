@@ -2678,6 +2678,7 @@ function Library:CreateWindow(...)
     if type(Config.Title) ~= 'string' then Config.Title = 'Window' end
     if type(Config.TabPadding) ~= 'number' then Config.TabPadding = 8 end
     if type(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.2 end
+	if type(Config.GameName) ~= 'string' then Config.GameName = "Rivals" end
 
     local WinW, WinH
     do
@@ -2730,7 +2731,7 @@ function Library:CreateWindow(...)
         Position                = UDim2.new(1, -S(7), 0, 0);
         Size                    = UDim2.new(0, 0, 0, S(25));
         AnchorPoint             = Vector2.new(1, 0);
-        Text                    = "Rivals";
+        Text                    = Config.GameName;
         TextColor3              = Library.AccentColor;
         TextStrokeTransparency  = 0.5;
         PreserveCase            = true;
