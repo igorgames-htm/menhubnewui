@@ -344,10 +344,6 @@ function Library:Unload()
         table.remove(Library.Signals, i):Disconnect()
     end
     if Library.OnUnload then Library.OnUnload() end
-    if not IsTouch then
-        local ezBlur = Services.Lighting:FindFirstChild("EliteZone_Blur")
-        if ezBlur then ezBlur:Destroy() end
-    end
     ScreenGui:Destroy()
 end
 
@@ -3696,16 +3692,6 @@ function Library:CreateWindow(...)
 
 
 
-    local Blur
-    if not IsTouch then
-        Blur = Services.Lighting:FindFirstChild("EliteZone_Blur") or Library:Create('BlurEffect', {
-            Name    = "EliteZone_Blur",
-            Size    = 30,
-            Enabled = false,
-            Parent  = Services.Lighting
-        })
-    end
-
     local OFFSCREEN_POS = UDim2.fromOffset(-99999, -99999)
     local tabsInitialized = false
     local function applyWindowVisibility(isVisible)
@@ -3734,7 +3720,6 @@ function Library:CreateWindow(...)
         setInputSink(isVisible)
         for _, cb in ipairs(Library.VisibilityCallbacks) do pcall(cb, isVisible) end
 
-        if Blur then Blur.Enabled = isVisible end
         OuterScale.Scale = Library.UIScaleValue or 1
 
         do
