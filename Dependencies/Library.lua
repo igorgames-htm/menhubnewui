@@ -611,8 +611,8 @@ end
 do
     Library.NotificationArea = Library:Create('Frame', {
         BackgroundTransparency  = 1;
-        Position                = UDim2.new(0, 0, 0, S(40));
-        Size                    = UDim2.new(0, S(320), 1, -S(50));
+        Position                = UDim2.new(0, 0, 0.575, 0);
+        Size                    = UDim2.new(1, 0, 0.5, 0);
         ZIndex                  = 100;
         Parent                  = ScreenGui;
     })
@@ -620,6 +620,7 @@ do
         Padding        = UDim.new(0, S(4));
         FillDirection  = Enum.FillDirection.Vertical;
         SortOrder      = Enum.SortOrder.LayoutOrder;
+		HorizontalAlignment = Enum.HorizontalAlignment.Center;
         Parent         = Library.NotificationArea;
     })
 
@@ -963,6 +964,7 @@ function Library:Notify(Text, Time)
     local xw = Library:GetTextBounds(Text, Library.Font, S(14)) or 200
     local H   = S(22)
     local Outer = Library:Create('Frame', {
+					AnchorPoint = Vector2.new(0.5, 0);
         BorderColor3      = Color3.new(0,0,0);
         Size              = UDim2.fromOffset(0, H);
         ClipsDescendants  = true;
